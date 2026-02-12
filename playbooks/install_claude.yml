@@ -1,0 +1,29 @@
+---
+- name: 安装 claude code 和 ccline
+  hosts: localhost
+  gather_facts: false
+  tasks:
+
+    - name: 检查 claude code 是否已安装
+      shell: command -v claude
+      register: claude_code_path
+      ignore_errors: true
+      changed_when: false
+
+    - name: 使用 pnpm 安装 claude code
+      shell: pnpm install -g @anthropic-ai/claude-code
+      when: claude_code_path.rc != 0
+      register: install_claude_code
+      changed_when: install_claude_code.rc == 0
+
+    - name: 检查 ccline 是否已安装
+      shell: command -v ccline
+      register: ccline_path
+      ignore_errors: true
+      changed_when: false
+
+    - name: 使用 pnpm 安装 ccline
+      shell: pnpm install -g @cometix/ccline
+      when: ccline_path.rc != 0
+      register: install_ccline
+      changed_when: install_ccline.rc == 0

@@ -1,0 +1,38 @@
+# settings.yml.j2
+# 用于渲染 claude settings 的 YAML 模板
+
+schema: "https://json.schemastore.org/claude-code-settings.json"
+env:
+  DISABLE_TELEMETRY: "1"
+  DISABLE_ERROR_REPORTING: "1"
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+  MCP_TIMEOUT: "60000"
+  ANTHROPIC_API_KEY: "{{ secrets.settings.env.ANTHROPIC_API_KEY }}"
+  ANTHROPIC_BASE_URL: "{{ settings.env.ANTHROPIC_BASE_URL }}"
+  ANTHROPIC_MODEL: "{{ settings.env.ANTHROPIC_MODEL }}"
+  ANTHROPIC_SMALL_FAST_MODEL: "{{ settings.env.ANTHROPIC_SMALL_FAST_MODEL }}"
+includeCoAuthoredBy: false
+permissions:
+  allow:
+    - Bash
+    - BashOutput
+    - Edit
+    - Glob
+    - Grep
+    - KillShell
+    - NotebookEdit
+    - Read
+    - SlashCommand
+    - Task
+    - TodoWrite
+    - WebFetch
+    - WebSearch
+    - Write
+  deny: []
+hooks: {}
+statusLine:
+  type: command
+  command: ccline
+  padding: 0
+outputStyle: "{{ settings.outputStyle }}"
+alwaysThinkingEnabled: true

@@ -1,0 +1,24 @@
+---
+- name: 渲染 claude settings.json 配置文件
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: 创建 ~/.claude 目录（如不存在）
+      file: { path: "~/.claude", state: directory, mode: "0755" }
+
+    - name: 渲染 claude settings.yml
+      template:
+        src: "{{ playbook_dir }}/../claude/settings.yml.j2"
+        dest: "/tmp/claude_settings.yml"
+        mode: "0644"
+
+    - name: 读取渲染后的 YAML
+      slurp:
+        src: "/tmp/claude_settings.yml"
+      register: settings_yml_content
+
+    - name: 解析 YAML 并转为 JSON
+      copy:
+        dest: "~/.claude/settings.json"
+        content: "{{ settings_yml_content.content | b64decode | from_yaml | to_nice_json }}"
+        mode: "0644"
