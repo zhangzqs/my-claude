@@ -3,4 +3,5 @@ settings:
     ANTHROPIC_BASE_URL: https://openai.qiniu.com
     ANTHROPIC_MODEL: claude-4.6-opus
     ANTHROPIC_SMALL_FAST_MODEL: claude-4.6-opus
-  outputStyle: "nekomata-engineer"
+  # outputStyle: "nekomata-engineer"
+  outputStyle: "laowang-engineer"
