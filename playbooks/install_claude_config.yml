@@ -8,7 +8,7 @@
 
     - name: 渲染 claude settings.yml
       template:
-        src: "{{ playbook_dir }}/../claude/settings.yml.j2"
+        src: "{{ playbook_dir }}/../claude-assets/settings.yml.j2"
         dest: "/tmp/claude_settings.yml"
         mode: "0644"
 
@@ -22,3 +22,11 @@
         dest: "~/.claude/settings.json"
         content: "{{ settings_yml_content.content | b64decode | from_yaml | to_nice_json }}"
         mode: "0644"
+
+    - name: rsync 同步 output-styles 目录
+      synchronize:
+        src: "{{ playbook_dir }}/../claude-assets/output-styles/"
+        dest: "~/.claude/output-styles/"
+        recursive: yes
+        mode: push
+        delete: no
