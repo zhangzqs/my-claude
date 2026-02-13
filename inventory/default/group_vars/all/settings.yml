@@ -1,7 +1,9 @@
 settings:
   env:
     ANTHROPIC_BASE_URL: https://openai.qiniu.com
-    ANTHROPIC_MODEL: claude-4.6-opus
-    ANTHROPIC_SMALL_FAST_MODEL: claude-4.6-opus
+    ANTHROPIC_DEFAULT_OPUS_MODEL: "claude-4.6-opus"
+    ANTHROPIC_DEFAULT_SONNET_MODEL: "claude-4.5-sonnet"
+    ANTHROPIC_DEFAULT_HAIKU_MODEL: "claude-4.6-haiku"
+    CLAUDE_CODE_SUBAGENT_MODEL: "claude-4.5-sonnet"
   # outputStyle: "nekomata-engineer"
   outputStyle: "laowang-engineer"

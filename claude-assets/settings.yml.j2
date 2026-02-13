@@ -7,10 +7,18 @@ env:
   DISABLE_ERROR_REPORTING: "1"
   CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
   MCP_TIMEOUT: "60000"
+  # 模型的API密钥
   ANTHROPIC_API_KEY: "{{ secrets.settings.env.ANTHROPIC_API_KEY }}"
+  # 模型的baseUrl
   ANTHROPIC_BASE_URL: "{{ settings.env.ANTHROPIC_BASE_URL }}"
-  ANTHROPIC_MODEL: "{{ settings.env.ANTHROPIC_MODEL }}"
-  ANTHROPIC_SMALL_FAST_MODEL: "{{ settings.env.ANTHROPIC_SMALL_FAST_MODEL }}"
+  # 用于opus或opusplan当计划模式处于活动状态时的模型。
+  ANTHROPIC_DEFAULT_OPUS_MODEL: "{{ settings.env.ANTHROPIC_DEFAULT_OPUS_MODEL }}"
+  # 当计划模式未激活时sonnet, 要使用的模型。opusplan
+  ANTHROPIC_DEFAULT_SONNET_MODEL: "{{ settings.env.ANTHROPIC_DEFAULT_SONNET_MODEL }}"
+  # haiku用于后台功能的模型
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: "{{ settings.env.ANTHROPIC_DEFAULT_HAIKU_MODEL }}"
+  # 用于子代理的模型
+  CLAUDE_CODE_SUBAGENT_MODEL: "{{ settings.env.CLAUDE_CODE_SUBAGENT_MODEL }}"
 includeCoAuthoredBy: false
 permissions:
   allow:
