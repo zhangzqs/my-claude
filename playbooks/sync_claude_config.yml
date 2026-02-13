@@ -30,3 +30,17 @@
         recursive: yes
         mode: push
         delete: no
+
+    - name: rsync 同步 commands 目录
+      synchronize:
+        src: "{{ playbook_dir }}/../claude-assets/commands/"
+        dest: "~/.claude/commands/"
+        recursive: yes
+        mode: push
+        delete: no
+
+    - name: 拷贝 CLAUDE.md 文件
+      copy:
+        dest: "~/.claude/CLAUDE.md"
+        src: "{{ playbook_dir }}/../claude-assets/CLAUDE.md"
+        mode: "0644"
