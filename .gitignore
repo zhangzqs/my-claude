@@ -1,1 +1,4 @@
 tmps
+.playwright-mcp
+.claude
+.venv
