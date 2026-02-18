@@ -1,0 +1,59 @@
+---
+# playbooks/tasks/sync_config_tasks.yml
+# 同步 Claude 配置到 ~/.claude
+
+- name: 显示阶段信息
+  debug:
+    msg: |
+      ========================================
+      阶段 3：同步配置到 ~/.claude
+      ========================================
+
+- name: 创建 ~/.claude 目录
+  file:
+    path: ~/.claude
+    state: directory
+    mode: "0755"
+
+- name: 渲染 claude settings.yml
+  template:
+    src: "{{ playbook_dir }}/../claude-assets/settings.yml.j2"
+    dest: /tmp/claude_settings.yml
+    mode: "0644"
+
+- name: 读取渲染后的 YAML
+  slurp:
+    src: /tmp/claude_settings.yml
+  register: rendered_settings
+
+- name: 解析 YAML 并转为 JSON
+  copy:
+    content: "{{ rendered_settings.content | b64decode | from_yaml | to_nice_json }}"
+    dest: ~/.claude/settings.json
+    mode: "0644"
+
+- name: 同步 output-styles 目录
+  synchronize:
+    src: "{{ playbook_dir }}/../claude-assets/output-styles/"
+    dest: ~/.claude/output-styles/
+    delete: true
+    recursive: true
+  delegate_to: localhost
+
+- name: 同步 commands 目录
+  synchronize:
+    src: "{{ playbook_dir }}/../claude-assets/commands/"
+    dest: ~/.claude/commands/
+    delete: true
+    recursive: true
+  delegate_to: localhost
+
+- name: 拷贝 CLAUDE.md 文件
+  copy:
+    src: "{{ playbook_dir }}/../claude-assets/CLAUDE.md"
+    dest: ~/.claude/CLAUDE.md
+    mode: "0644"
+
+- name: 显示配置同步完成信息
+  debug:
+    msg: "✓ 配置同步完成"

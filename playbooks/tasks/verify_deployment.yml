@@ -1,0 +1,56 @@
+---
+# playbooks/tasks/verify_deployment.yml
+# 验证 Claude Code 部署结果
+
+- name: 显示阶段信息
+  debug:
+    msg: |
+      ========================================
+      阶段 4：验证部署结果
+      ========================================
+
+- name: 检查 settings.json 是否存在
+  stat:
+    path: ~/.claude/settings.json
+  register: settings_json
+
+- name: 验证 settings.json 存在
+  assert:
+    that:
+      - settings_json.stat.exists
+    fail_msg: "settings.json 不存在"
+    success_msg: "✓ settings.json 已生成"
+
+- name: 读取 settings.json
+  slurp:
+    src: ~/.claude/settings.json
+  register: settings_json_content
+
+- name: 解析 settings.json
+  set_fact:
+    settings_data: "{{ settings_json_content.content | b64decode | from_json }}"
+
+- name: 验证环境变量配置
+  assert:
+    that:
+      - settings_data.env.ANTHROPIC_API_KEY is defined
+      - settings_data.env.ANTHROPIC_BASE_URL is defined
+    fail_msg: "环境变量配置不完整"
+    success_msg: "✓ 环境变量配置正确"
+
+- name: 验证插件配置
+  assert:
+    that:
+      - settings_data.enabledPlugins is defined
+      - settings_data.enabledPlugins | length == plugins_to_install | length
+    fail_msg: "插件配置不完整"
+    success_msg: "✓ 插件配置正确（{{ settings_data.enabledPlugins | length }} 个插件）"
+  when: plugins_to_install | length > 0
+
+- name: 验证输出风格配置
+  assert:
+    that:
+      - settings_data.outputStyle is defined
+      - settings_data.outputStyle == settings.outputStyle
+    fail_msg: "输出风格配置不匹配"
+    success_msg: "✓ 输出风格：{{ settings_data.outputStyle }}"
