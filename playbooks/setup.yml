@@ -1,0 +1,385 @@
+---
+# playbooks/setup.yml
+# Claude Code 完整配置部署
+#
+# 功能：
+# 1. 检查并安装 Claude CLI（可选）
+# 2. 自动安装 enabled_plugins 列表中的插件
+# 3. 同步配置到 ~/.claude/settings.json
+# 4. 验证部署结果
+#
+# 使用方法：
+#   uv run ansible-playbook playbooks/setup.yml
+#
+# 跳过 Claude CLI 安装：
+#   uv run ansible-playbook playbooks/setup.yml --skip-tags install_cli
+#
+# 跳过插件安装：
+#   uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins
+
+- name: Claude Code 完整配置部署
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    # 从 settings.yml 读取配置
+    plugins_to_install: "{{ settings.enabled_plugins | default([]) }}"
+    skip_cli_install: false
+
+  tasks:
+    - name: ===== 阶段 1：检查 Claude CLI =====
+      debug:
+        msg: |
+          ========================================
+          阶段 1：检查 Claude CLI
+          ========================================
+
+    - name: 检查 Claude CLI 是否已安装
+      shell: which claude || command -v claude
+      register: claude_check
+      changed_when: false
+      failed_when: false
+      tags:
+        - always
+
+    - name: 显示 Claude CLI 状态
+      debug:
+        msg: "{{ 'Claude CLI 已安装：' + claude_check.stdout if claude_check.rc == 0 else 'Claude CLI 未安装' }}"
+      tags:
+        - always
+
+    - name: 提示需要安装 Claude CLI
+      debug:
+        msg: |
+          ⚠️  Claude CLI 未安装
+
+          请选择安装方式：
+          1. 自动安装（推荐）：
+             uv run ansible-playbook playbooks/install_claude.yml
+
+          2. 手动安装：
+             npm install -g @anthropics/claude-code
+
+          安装完成后，重新运行此 Playbook。
+      when: claude_check.rc != 0
+      tags:
+        - always
+
+    - name: 终止部署（Claude CLI 未安装）
+      fail:
+        msg: "Claude CLI 未安装，无法继续部署。请先安装 Claude CLI。"
+      when: claude_check.rc != 0
+      tags:
+        - always
+
+    - name: ===== 阶段 2：安装插件 =====
+      debug:
+        msg: |
+          ========================================
+          阶段 2：安装插件
+          ========================================
+          期望插件数量：{{ plugins_to_install | length }}
+      tags:
+        - install_plugins
+
+    - name: 检查是否配置了插件
+      debug:
+        msg: "⚠️  未配置任何插件，跳过插件安装"
+      when: plugins_to_install | length == 0
+      tags:
+        - install_plugins
+
+    - name: 获取已安装插件列表
+      shell: claude plugin list --json 2>/dev/null || echo '[]'
+      register: installed_plugins_raw
+      changed_when: false
+      failed_when: false
+      when: plugins_to_install | length > 0
+      tags:
+        - install_plugins
+
+    - name: 解析已安装插件列表
+      set_fact:
+        installed_plugins: "{{ installed_plugins_raw.stdout | from_json | default([]) }}"
+      when: plugins_to_install | length > 0
+      tags:
+        - install_plugins
+
+    - name: 提取已安装插件 ID
+      set_fact:
+        installed_plugin_ids: "{{ installed_plugins | map(attribute='id') | list }}"
+      when:
+        - plugins_to_install | length > 0
+        - installed_plugins | length > 0
+      tags:
+        - install_plugins
+
+    - name: 初始化已安装插件列表（空）
+      set_fact:
+        installed_plugin_ids: []
+      when:
+        - plugins_to_install | length > 0
+        - installed_plugins | length == 0
+      tags:
+        - install_plugins
+
+    - name: 计算需要安装的插件
+      set_fact:
+        plugins_to_add: "{{ plugins_to_install | difference(installed_plugin_ids) }}"
+      when: plugins_to_install | length > 0
+      tags:
+        - install_plugins
+
+    - name: 显示插件安装计划
+      debug:
+        msg: |
+          已安装：{{ installed_plugin_ids }}
+          需要安装：{{ plugins_to_add }}
+      when: plugins_to_install | length > 0
+      tags:
+        - install_plugins
+
+    - name: 提示无需安装插件
+      debug:
+        msg: "✓ 所有插件已安装，跳过安装"
+      when:
+        - plugins_to_install | length > 0
+        - plugins_to_add | length == 0
+      tags:
+        - install_plugins
+
+    - name: 安装缺失的插件
+      command: "claude plugin install {{ item }}"
+      loop: "{{ plugins_to_add }}"
+      register: install_result
+      when:
+        - plugins_to_install | length > 0
+        - plugins_to_add | length > 0
+      changed_when: install_result.rc == 0
+      failed_when: install_result.rc != 0
+      tags:
+        - install_plugins
+
+    - name: 等待插件安装完成
+      pause:
+        seconds: 2
+      when:
+        - plugins_to_install | length > 0
+        - plugins_to_add | length > 0
+      tags:
+        - install_plugins
+
+    - name: 验证插件安装结果
+      shell: claude plugin list --json 2>/dev/null || echo '[]'
+      register: installed_plugins_after
+      changed_when: false
+      when:
+        - plugins_to_install | length > 0
+        - plugins_to_add | length > 0
+      tags:
+        - install_plugins
+
+    - name: 解析安装后的插件列表
+      set_fact:
+        installed_plugins_final: "{{ installed_plugins_after.stdout | from_json | default([]) }}"
+        installed_plugin_ids_final: "{{ (installed_plugins_after.stdout | from_json | default([])) | map(attribute='id') | list }}"
+      when:
+        - plugins_to_install | length > 0
+        - plugins_to_add | length > 0
+      tags:
+        - install_plugins
+
+    - name: 检查插件是否安装成功
+      assert:
+        that:
+          - item in installed_plugin_ids_final
+        fail_msg: "插件 {{ item }} 安装失败"
+        success_msg: "插件 {{ item }} 安装成功"
+      loop: "{{ plugins_to_install }}"
+      when:
+        - plugins_to_install | length > 0
+        - plugins_to_add | length > 0
+      tags:
+        - install_plugins
+
+    - name: 显示插件安装完成信息
+      debug:
+        msg: |
+          ✓ 插件安装完成
+          已安装插件数量：{{ installed_plugin_ids_final | length }}
+      when:
+        - plugins_to_install | length > 0
+        - plugins_to_add | length > 0
+      tags:
+        - install_plugins
+
+    - name: ===== 阶段 3：同步配置 =====
+      debug:
+        msg: |
+          ========================================
+          阶段 3：同步配置到 ~/.claude
+          ========================================
+      tags:
+        - sync_config
+
+    - name: 创建 ~/.claude 目录
+      file:
+        path: ~/.claude
+        state: directory
+        mode: "0755"
+      tags:
+        - sync_config
+
+    - name: 渲染 claude settings.yml
+      template:
+        src: "{{ playbook_dir }}/../claude-assets/settings.yml.j2"
+        dest: /tmp/claude_settings.yml
+        mode: "0644"
+      tags:
+        - sync_config
+
+    - name: 读取渲染后的 YAML
+      slurp:
+        src: /tmp/claude_settings.yml
+      register: rendered_settings
+      tags:
+        - sync_config
+
+    - name: 解析 YAML 并转为 JSON
+      copy:
+        content: "{{ rendered_settings.content | b64decode | from_yaml | to_nice_json }}"
+        dest: ~/.claude/settings.json
+        mode: "0644"
+      tags:
+        - sync_config
+
+    - name: 同步 output-styles 目录
+      synchronize:
+        src: "{{ playbook_dir }}/../claude-assets/output-styles/"
+        dest: ~/.claude/output-styles/
+        delete: true
+        recursive: true
+      delegate_to: localhost
+      tags:
+        - sync_config
+
+    - name: 同步 commands 目录
+      synchronize:
+        src: "{{ playbook_dir }}/../claude-assets/commands/"
+        dest: ~/.claude/commands/
+        delete: true
+        recursive: true
+      delegate_to: localhost
+      tags:
+        - sync_config
+
+    - name: 拷贝 CLAUDE.md 文件
+      copy:
+        src: "{{ playbook_dir }}/../claude-assets/CLAUDE.md"
+        dest: ~/.claude/CLAUDE.md
+        mode: "0644"
+      tags:
+        - sync_config
+
+    - name: 显示配置同步完成信息
+      debug:
+        msg: "✓ 配置同步完成"
+      tags:
+        - sync_config
+
+    - name: ===== 阶段 4：验证部署 =====
+      debug:
+        msg: |
+          ========================================
+          阶段 4：验证部署结果
+          ========================================
+      tags:
+        - verify
+
+    - name: 检查 settings.json 是否存在
+      stat:
+        path: ~/.claude/settings.json
+      register: settings_json
+      tags:
+        - verify
+
+    - name: 验证 settings.json 存在
+      assert:
+        that:
+          - settings_json.stat.exists
+        fail_msg: "settings.json 不存在"
+        success_msg: "✓ settings.json 已生成"
+      tags:
+        - verify
+
+    - name: 读取 settings.json
+      slurp:
+        src: ~/.claude/settings.json
+      register: settings_json_content
+      tags:
+        - verify
+
+    - name: 解析 settings.json
+      set_fact:
+        settings_data: "{{ settings_json_content.content | b64decode | from_json }}"
+      tags:
+        - verify
+
+    - name: 验证环境变量配置
+      assert:
+        that:
+          - settings_data.env.ANTHROPIC_API_KEY is defined
+          - settings_data.env.ANTHROPIC_BASE_URL is defined
+        fail_msg: "环境变量配置不完整"
+        success_msg: "✓ 环境变量配置正确"
+      tags:
+        - verify
+
+    - name: 验证插件配置
+      assert:
+        that:
+          - settings_data.enabledPlugins is defined
+          - settings_data.enabledPlugins | length == plugins_to_install | length
+        fail_msg: "插件配置不完整"
+        success_msg: "✓ 插件配置正确（{{ settings_data.enabledPlugins | length }} 个插件）"
+      when: plugins_to_install | length > 0
+      tags:
+        - verify
+
+    - name: 验证输出风格配置
+      assert:
+        that:
+          - settings_data.outputStyle is defined
+          - settings_data.outputStyle == settings.outputStyle
+        fail_msg: "输出风格配置不匹配"
+        success_msg: "✓ 输出风格：{{ settings_data.outputStyle }}"
+      tags:
+        - verify
+
+    - name: 最终部署报告
+      debug:
+        msg: |
+          ========================================
+          ✓ Claude Code 部署完成
+          ========================================
+
+          部署摘要：
+          - Claude CLI：已安装
+          - 插件数量：{{ plugins_to_install | length }} 个
+          - 配置文件：~/.claude/settings.json
+          - 输出风格：{{ settings.outputStyle }}
+
+          已启用的插件：
+          {% for plugin in plugins_to_install %}
+          - {{ plugin }}
+          {% endfor %}
+
+          下一步：
+          1. 重启 Claude Code 会话以加载新配置
+          2. 验证插件工具是否可用
+
+          验证命令：
+          - claude plugin list          # 查看已安装插件
+          - cat ~/.claude/settings.json # 检查配置文件
+      tags:
+        - always

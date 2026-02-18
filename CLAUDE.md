@@ -117,7 +117,7 @@ graph TD
 | `claude-assets/agents/` | 自定义智能体定义（子 Agent） | `init-architect.md`, `get-current-datetime.md` | [查看文档](./claude-assets/agents/CLAUDE.md) |
 | `claude-assets/output-styles/` | 个性化输出风格定义（人格化） | `nekomata-engineer.md`, `laowang-engineer.md` 等 | [查看文档](./claude-assets/output-styles/CLAUDE.md) |
 | `inventory/` | Ansible 清单与变量管理 | `inventory.yml`, `settings.yml`, `secrets.yml` | [查看文档](./inventory/CLAUDE.md) |
-| `playbooks/` | Ansible Playbook 剧本 | `sync_claude_config.yml`, `install_claude.yml` | [查看文档](./playbooks/CLAUDE.md) |
+| `playbooks/` | Ansible Playbook 剧本 | `setup.yml`, `sync_claude_config.yml`, `install_plugins.yml`, `install_claude.yml` | [查看文档](./playbooks/CLAUDE.md) |
 
 ---
 
@@ -126,29 +126,58 @@ graph TD
 ### 前置条件
 
 - Python 3.8+
-- Ansible 2.9+
-- Claude Code CLI 已安装
+- Ansible 2.9+（推荐通过 uv 管理）
+- Node.js 18+（用于安装 Claude CLI）
 
-### 初始化项目
+### 一键部署（推荐）
 
 ```bash
 # 1. 克隆仓库
 git clone <仓库地址> my-claude
 cd my-claude
 
-# 2. 创建 Python 虚拟环境（可选）
-python3 -m venv .venv
-source .venv/bin/activate
-
-# 3. 安装 Ansible
-pip install ansible
-
-# 4. 配置变量
+# 2. 配置变量
 # 编辑 inventory/default/group_vars/all/settings.yml（公开配置）
+vim inventory/default/group_vars/all/settings.yml
 # 编辑 inventory/default/group_vars/all/secrets.yml（敏感信息）
+vim inventory/default/group_vars/all/secrets.yml
 
-# 5. 同步配置到 ~/.claude
-ansible-playbook playbooks/sync_claude_config.yml
+# 3. 一键部署（安装插件 + 同步配置）
+uv run ansible-playbook playbooks/setup.yml
+```
+
+**`setup.yml` 会自动执行**：
+1. 检查 Claude CLI 是否已安装（未安装会提示）
+2. 自动安装 `enabled_plugins` 列表中的插件
+3. 同步配置到 `~/.claude/settings.json`
+4. 验证部署结果
+
+### 分步部署（可选）
+
+如果需要更精细的控制，可以分步执行：
+
+```bash
+# 1. 安装 Claude CLI（如果尚未安装）
+uv run ansible-playbook playbooks/install_claude.yml
+
+# 2. 安装插件
+uv run ansible-playbook playbooks/install_plugins.yml
+
+# 3. 同步配置
+uv run ansible-playbook playbooks/sync_claude_config.yml
+```
+
+### 跳过特定步骤
+
+```bash
+# 跳过插件安装（仅同步配置）
+uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins
+
+# 仅安装插件（不同步配置）
+uv run ansible-playbook playbooks/setup.yml --tags install_plugins
+
+# 仅同步配置（不安装插件）
+uv run ansible-playbook playbooks/setup.yml --tags sync_config
 ```
 
 ### 验证配置
@@ -171,14 +200,20 @@ ls -la ~/.claude/output-styles/
 ### 主要命令
 
 ```bash
+# 一键部署（推荐）
+uv run ansible-playbook playbooks/setup.yml
+
 # 同步配置到 ~/.claude（常用）
-ansible-playbook playbooks/sync_claude_config.yml
+uv run ansible-playbook playbooks/sync_claude_config.yml
+
+# 安装插件
+uv run ansible-playbook playbooks/install_plugins.yml
 
 # 查看配置变量（不执行）
-ansible-playbook playbooks/sync_claude_config.yml --check --diff
+uv run ansible-playbook playbooks/sync_claude_config.yml --check --diff
 
-# 安装 Claude Code（可选）
-ansible-playbook playbooks/install_claude.yml
+# 安装 Claude CLI（可选）
+uv run ansible-playbook playbooks/install_claude.yml
 
 # 验证 Ansible 配置
 ansible-config dump --only-changed
@@ -281,9 +316,168 @@ settings:
     CLAUDE_CODE_SUBAGENT_MODEL: "claude-4.5-sonnet"      # 用于子代理
 ```
 
+### Claude 插件管理
+
+#### 查看可用插件
+
+官方市场（`claude-plugins-official`）共有 13 个可用插件：
+
+| 插件名称 | 功能描述 |
+|---------|---------|
+| `playwright` | 浏览器自动化与端到端测试 |
+| `serena` | 语义代码分析与重构建议 |
+| `context7` | 最新文档查询（从源仓库拉取） |
+| `github` | GitHub 仓库管理（Issues、PR、代码审查） |
+| `gitlab` | GitLab DevOps 平台集成 |
+| `slack` | Slack 工作区集成 |
+| `asana` | Asana 项目管理集成 |
+| `linear` | Linear Issue 跟踪集成 |
+| `firebase` | Firebase 后端管理 |
+| `supabase` | Supabase 后端集成 |
+| `stripe` | Stripe 支付 API 集成 |
+| `greptile` | AI 代码审查代理 |
+| `laravel-boost` | Laravel 开发工具包 |
+
+#### 启用插件
+
+**方法 1：仅更新配置（推荐，适合已安装插件）**
+
+1. 编辑 `inventory/default/group_vars/all/settings.yml`
+2. 在 `enabled_plugins` 列表中添加插件名称：
+
+   ```yaml
+   settings:
+     enabled_plugins:
+       - "playwright@claude-plugins-official"
+       - "context7@claude-plugins-official"
+       - "serena@claude-plugins-official"
+   ```
+
+3. 运行 `uv run ansible-playbook playbooks/sync_claude_config.yml`
+
+**方法 2：自动安装并启用插件（推荐，适合新插件）**
+
+1. 编辑 `inventory/default/group_vars/all/settings.yml`
+2. 在 `enabled_plugins` 列表中添加插件名称
+3. 运行 `uv run ansible-playbook playbooks/install_plugins.yml`（自动安装）
+4. 运行 `uv run ansible-playbook playbooks/sync_claude_config.yml`（同步配置）
+
+**特性说明**：
+
+- `install_plugins.yml` 支持幂等性：已安装的插件不会重复安装
+- 自动检测缺失插件，仅安装未安装的插件
+- 安装完成后自动验证插件可用性
+
+#### 禁用插件
+
+1. 编辑 `settings.yml`，从 `enabled_plugins` 列表中移除插件名称
+2. 运行 `ansible-playbook playbooks/sync_claude_config.yml`
+
+#### 卸载插件
+
+```bash
+claude plugin uninstall <插件名>@claude-plugins-official
+```
+
+#### 查看已安装插件
+
+```bash
+claude plugin list
+```
+
+---
+
+### 自定义 MCP 服务器管理
+
+#### 什么是自定义 MCP 服务器？
+
+- **Claude 插件**：通过 `claude plugin install` 安装，由官方市场提供，插件内部包含 `.mcp.json` 定义
+- **自定义 MCP 服务器**：不在官方市场，需要手动在 `settings.json` 中配置启动命令和参数
+
+#### 添加自定义 MCP 服务器
+
+1. 编辑 `inventory/default/group_vars/all/settings.yml`
+2. 在 `custom_mcp_servers` 列表中添加服务器定义：
+
+   ```yaml
+   settings:
+     custom_mcp_servers:
+       - name: "my-custom-mcp"
+         command: "python"
+         args:
+           - "/path/to/server.py"
+         env:
+           API_KEY: "your-api-key"
+   ```
+
+3. 运行 `ansible-playbook playbooks/sync_claude_config.yml`
+
+#### 配置说明
+
+- `name`：MCP 服务器名称（在 Claude 中显示）
+- `command`：启动命令（如 python、node、npx、uvx）
+- `args`：命令参数（数组格式）
+- `env`：环境变量（可选，支持从 secrets.yml 引用敏感信息）
+
+#### 示例配置
+
+**Python MCP 服务器**：
+
+```yaml
+custom_mcp_servers:
+  - name: "python-mcp"
+    command: "python"
+    args: ["/home/user/mcp-server/server.py"]
+```
+
+**Node.js MCP 服务器**：
+
+```yaml
+custom_mcp_servers:
+  - name: "node-mcp"
+    command: "node"
+    args: ["/home/user/mcp-server/index.js"]
+```
+
+**通过 npx 启动**：
+
+```yaml
+custom_mcp_servers:
+  - name: "npx-mcp"
+    command: "npx"
+    args: ["-y", "@company/mcp-server"]
+```
+
+**引用敏感信息**：
+
+```yaml
+# settings.yml
+custom_mcp_servers:
+  - name: "secure-mcp"
+    command: "python"
+    args: ["/path/to/server.py"]
+    env:
+      API_KEY: "{{ secrets.custom_mcp_api_key }}"
+
+# secrets.yml
+secrets:
+  custom_mcp_api_key: "your-secret-key-here"
+```
+
 ---
 
 ## 变更记录
+
+### 2026-02-18
+
+- **feat(config)**: 新增 Claude 插件与 MCP 服务器配置管理
+- **feat(settings.yml)**: 新增 `enabled_plugins` 和 `custom_mcp_servers` 配置项
+- **feat(template)**: 扩展 `settings.yml.j2` 模板，支持渲染 `enabledPlugins` 和 `mcpServers` 字段
+- **feat(playbook)**: 新增 `install_plugins.yml`，实现插件自动安装功能（支持幂等性）
+- **feat(playbook)**: 新增 `setup.yml`，实现一键部署流程（检查 CLI + 安装插件 + 同步配置 + 验证）
+- **docs(CLAUDE.md)**: 新增"Claude 插件管理"和"自定义 MCP 服务器管理"章节
+- **docs(CLAUDE.md)**: 更新"快速开始"章节，推荐使用 `setup.yml` 一键部署
+- **docs(CLAUDE.md)**: 更新模块索引表格，添加 `setup.yml` 和 `install_plugins.yml` 条目
 
 ### 2026-02-17
 

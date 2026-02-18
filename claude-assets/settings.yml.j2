@@ -44,3 +44,30 @@ statusLine:
   padding: 0
 outputStyle: "{{ settings.outputStyle }}"
 alwaysThinkingEnabled: true
+{% if settings.enabled_plugins is defined and settings.enabled_plugins | length > 0 %}
+
+# ===== Claude 插件启用配置 =====
+enabledPlugins:
+{% for plugin in settings.enabled_plugins %}
+  {{ plugin }}: true
+{% endfor %}
+{% endif %}
+{% if settings.custom_mcp_servers is defined and settings.custom_mcp_servers | length > 0 %}
+
+# ===== 自定义 MCP 服务器配置 =====
+mcpServers:
+{% for server in settings.custom_mcp_servers %}
+  {{ server.name }}:
+    command: {{ server.command }}
+    args:
+{% for arg in server.args %}
+      - {{ arg }}
+{% endfor %}
+{% if server.env is defined %}
+    env:
+{% for key, value in server.env.items() %}
+      {{ key }}: {{ value }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}

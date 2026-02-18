@@ -9,3 +9,33 @@ settings:
   # outputStyle: "laowang-engineer"
   # outputStyle: "tangtang-bot-engineer"
   outputStyle: "marionette-engineer"
+
+  # ===== Claude 插件配置（来自官方市场） =====
+  # 格式：<插件名>@<市场名>
+  # 官方市场共有 13 个可用插件：playwright、serena、context7、github、gitlab、
+  # slack、asana、linear、firebase、supabase、stripe、greptile、laravel-boost
+  enabled_plugins:
+    - "playwright@claude-plugins-official"
+    - "context7@claude-plugins-official"
+    - "serena@claude-plugins-official"
+
+  # ===== 自定义 MCP 服务器配置（非插件市场） =====
+  # 用于配置非插件市场的自定义 MCP 服务器
+  # 格式：
+  #   - name: 服务器名称（唯一标识）
+  #     command: 启动命令（如 python、node、npx）
+  #     args: 命令参数（数组格式）
+  #     env: 环境变量（可选，支持从 secrets.yml 引用）
+  custom_mcp_servers: []
+  # 示例配置：
+  # custom_mcp_servers:
+  #   - name: "custom-python-mcp"
+  #     command: "python"
+  #     args:
+  #       - "/path/to/custom-mcp/server.py"
+  #     env:
+  #       API_KEY: "{{ secrets.custom_mcp_api_key }}"
+  #   - name: "local-node-mcp"
+  #     command: "node"
+  #     args:
+  #       - "/home/user/mcp-server/index.js"
