@@ -1,5 +1,0 @@
-[    1809ms] [WARNING] This page is using the deprecated ResourceLoader module "jquery.ui".
-Please use Codex instead. @ https://mzh.moegirl.org.cn/load.php?lang=zh-hans&modules=startup&only=scripts&raw=1&skin=moeskin:11
-[    1826ms] [WARNING] This page is using the deprecated ResourceLoader module "mediawiki.Uri".
-[1.43] Please use browser native URL. See https://www.mediawiki.org/wiki/Migrating_mw.Uri_to_URL @ https://mzh.moegirl.org.cn/load.php?lang=zh-hans&modules=startup&only=scripts&raw=1&skin=moeskin:11
-[    1833ms] [WARNING] <link rel=preload> uses an unsupported `as` value @ https://app.moegirl.org.cn/moe-auth/modal-builder/index.umd.cjs:0
