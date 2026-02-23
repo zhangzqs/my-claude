@@ -15,6 +15,54 @@
     msg: "⚠️  未配置任何插件，跳过插件安装"
   when: plugins_to_install | length == 0
 
+- name: 提取目标插件使用的 marketplace 列表
+  set_fact:
+    plugin_marketplaces_required: >-
+      {{
+        plugins_to_install
+        | select('search', '@')
+        | map('regex_replace', '^.*@', '')
+        | unique
+        | list
+      }}
+  when: plugins_to_install | length > 0
+
+- name: 获取已配置 marketplace 列表
+  shell: claude plugin marketplace list --json 2>/dev/null || echo '[]'
+  register: configured_marketplaces_raw
+  changed_when: false
+  failed_when: false
+  when: plugins_to_install | length > 0
+
+- name: 解析已配置 marketplace 列表
+  set_fact:
+    configured_marketplaces: "{{ configured_marketplaces_raw.stdout | from_json | default([]) }}"
+  when: plugins_to_install | length > 0
+
+- name: 提取已配置 marketplace 名称
+  set_fact:
+    configured_marketplace_names: "{{ configured_marketplaces | map(attribute='name') | list }}"
+  when: plugins_to_install | length > 0
+
+- name: 自动添加官方 marketplace
+  command: "claude plugin marketplace add https://github.com/anthropics/claude-plugins-official.git"
+  register: add_official_marketplace
+  changed_when: add_official_marketplace.rc == 0
+  failed_when: add_official_marketplace.rc != 0
+  when:
+    - plugins_to_install | length > 0
+    - "'claude-plugins-official' in plugin_marketplaces_required"
+    - "'claude-plugins-official' not in configured_marketplace_names"
+
+- name: 更新官方 marketplace 索引
+  command: "claude plugin marketplace update claude-plugins-official"
+  register: update_official_marketplace
+  changed_when: false
+  failed_when: false
+  when:
+    - plugins_to_install | length > 0
+    - "'claude-plugins-official' in plugin_marketplaces_required"
+
 - name: 获取已安装插件列表
   shell: claude plugin list --json 2>/dev/null || echo '[]'
   register: installed_plugins_raw

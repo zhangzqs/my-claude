@@ -44,7 +44,11 @@
         - install_cli
 
     - name: ===== 阶段 2：安装插件 =====
-      include_tasks: tasks/install_plugins_tasks.yml
+      include_tasks:
+        file: tasks/install_plugins_tasks.yml
+        apply:
+          tags:
+            - install_plugins
       tags:
         - install_plugins
 
