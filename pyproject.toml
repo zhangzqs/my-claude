@@ -11,7 +11,7 @@ dependencies = [
 
 # Python 换源
 [tool.uv]
-index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+index-url = "https://mirrors.aliyun.com/pypi/simple"
 package = true
 
 [build-system]
