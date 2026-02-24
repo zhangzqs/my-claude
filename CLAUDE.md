@@ -514,6 +514,52 @@ secrets:
 
 ---
 
+## CI/CD 集成
+
+### GitHub Actions 自动化部署
+
+本项目提供 GitHub Actions workflow，可在全新机器上自动化测试部署流程。
+
+#### 快速开始
+
+**无需任何配置**，直接推送即可：
+
+```bash
+git add .github/workflows/test-deployment.yml
+git commit -m "ci: 新增 GitHub Actions 自动化部署测试"
+git push origin master
+```
+
+Workflow 会自动：
+
+1. ✅ 安装 Python + uv + Ansible
+2. ✅ 安装 Node.js + Claude CLI
+3. ✅ 生成配置文件（使用占位符 API Key）
+4. ✅ 验证 Ansible Playbook 语法
+5. ✅ 同步配置到 `~/.claude/`
+6. ✅ 生成部署报告
+
+#### 可选配置（真实 API Key）
+
+如需使用真实 API Key 测试，在仓库的 **Settings → Secrets and variables → Actions** 中配置：
+
+- `ANTHROPIC_API_KEY`：Anthropic API 密钥
+
+#### 触发方式
+
+- **自动触发**：推送到 `master`/`main`/`develop` 分支
+- **手动触发**：**Actions** 标签 → **Test Claude Deployment** → **Run workflow**
+
+#### 查看测试结果
+
+1. 进入 **Actions** 标签
+2. 选择 workflow run
+3. 查看执行日志或下载 **Artifacts** 中的部署报告
+
+**详细文档**：[.github/workflows/README.md](.github/workflows/README.md)
+
+---
+
 ## 变更记录
 
 ### 2026-02-24
