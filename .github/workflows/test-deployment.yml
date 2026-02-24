@@ -110,14 +110,11 @@ jobs:
           uv run ansible-playbook playbooks/setup.yml --syntax-check
           echo "✓ Playbook syntax is valid"
 
-      - name: 🧪 Dry run - sync configuration
-        run: |
-          uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins,verify --check --diff
-          echo "✓ Dry run completed successfully"
-
       # ========================================
       # 阶段 5：实际部署（仅同步配置）
       # ========================================
+      # 注意：跳过 dry run，因为 --check 模式不会创建临时文件，
+      # 导致后续读取文件的任务失败
       - name: 🚀 Deploy - sync Claude configuration
         run: |
           uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins,verify
