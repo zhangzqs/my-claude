@@ -50,6 +50,11 @@ jobs:
           uv run ansible --version
           echo "✓ Ansible installed successfully"
 
+      - name: 📁 Create required directories
+        run: |
+          mkdir -p tmps/facts
+          echo "✓ Required directories created"
+
       # ========================================
       # 阶段 2：Node.js 与 Claude CLI
       # ========================================
@@ -102,12 +107,12 @@ jobs:
       # ========================================
       - name: 🧪 Test Ansible playbook syntax
         run: |
-          uv run ansible-playbook playbooks/sync_claude_config.yml --syntax-check
+          uv run ansible-playbook playbooks/setup.yml --syntax-check
           echo "✓ Playbook syntax is valid"
 
       - name: 🧪 Dry run - sync configuration
         run: |
-          uv run ansible-playbook playbooks/sync_claude_config.yml --check --diff
+          uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
           echo "✓ Dry run completed successfully"
 
       # ========================================
@@ -115,7 +120,7 @@ jobs:
       # ========================================
       - name: 🚀 Deploy - sync Claude configuration
         run: |
-          uv run ansible-playbook playbooks/sync_claude_config.yml
+          uv run ansible-playbook playbooks/setup.yml --tags sync_config --skip-tags install_plugins
           echo "✓ Configuration synced successfully"
 
       - name: 🔍 Verify deployment
