@@ -11,13 +11,18 @@ settings:
   outputStyle: "marionette-engineer"
 
   # ===== Claude 插件配置（来自官方市场） =====
-  # 格式：<插件名>@<市场名>
-  # 官方市场共有 13 个可用插件：playwright、serena、context7、github、gitlab、
-  # slack、asana、linear、firebase、supabase、stripe、greptile、laravel-boost
   enabled_plugins:
-    - "playwright@claude-plugins-official"
-    - "context7@claude-plugins-official"
-    - "serena@claude-plugins-official"
+    - "code-review@claude-plugins-official" # 官方 Code Review 插件，提供代码审查和改进建议能力
+    - "frontend-design@claude-plugins-official" # 官方 Frontend Design 插件，提供前端设计的Skill能力
+    - "playwright@claude-plugins-official" # 官方 Playwright 插件，提供浏览器自动化能力
+    - "context7@claude-plugins-official" # 官方 Context7 插件，提供API文档检索能力
+    - "serena@claude-plugins-official" # 官方 Serena 插件，提供代码分析和重构能力
+    - "claude-md-management@claude-plugins-official" # 官方 Claude MD Management 插件，自动更新和维护 Markdown 文档能力
+    - "gopls-lsp@claude-plugins-official" # 官方 gopls LSP 插件，提供 Go 语言的代码智能能力
+    - "figma@claude-plugins-official" # 官方 Figma 插件，提供设计稿分析和前端代码生成能力
+    - "typescript-lsp@claude-plugins-official" # 官方 TypeScript LSP 插件，提供 TypeScript 语言的代码智能能力
+    - "feature-dev@claude-plugins-official" # 官方 Feature Dev 插件，提供功能开发规划和代码生成能力
+    - "github@claude-plugins-official" # 官方 GitHub 插件，包含了 Github MCP
 
   # ===== 自定义 MCP 服务器配置（非插件市场） =====
   # 用于配置非插件市场的自定义 MCP 服务器
