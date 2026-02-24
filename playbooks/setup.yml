@@ -32,6 +32,10 @@
   hosts: "{{ target_hosts | default('localhost') }}"
   gather_facts: false
 
+  vars_files:
+    - "{{ playbook_dir }}/../inventory/default/group_vars/all/settings.yml"
+    - "{{ playbook_dir }}/../inventory/default/group_vars/all/secrets.yml"
+
   vars:
     # 从 settings.yml 读取配置
     plugins_to_install: "{{ settings.enabled_plugins | default([]) }}"

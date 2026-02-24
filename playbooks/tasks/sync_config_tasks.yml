@@ -53,6 +53,7 @@
     src: "{{ playbook_dir }}/../claude-assets/CLAUDE.md"
     dest: ~/.claude/CLAUDE.md
     mode: "0644"
+  when: false  # CLAUDE.md 已通过其他方式管理，此任务暂时禁用
 
 - name: 显示配置同步完成信息
   debug:
