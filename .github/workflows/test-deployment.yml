@@ -112,7 +112,7 @@ jobs:
 
       - name: 🧪 Dry run - sync configuration
         run: |
-          uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
+          uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins,verify --check --diff
           echo "✓ Dry run completed successfully"
 
       # ========================================
@@ -120,7 +120,7 @@ jobs:
       # ========================================
       - name: 🚀 Deploy - sync Claude configuration
         run: |
-          uv run ansible-playbook playbooks/setup.yml --tags sync_config --skip-tags install_plugins
+          uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins,verify
           echo "✓ Configuration synced successfully"
 
       - name: 🔍 Verify deployment

@@ -2,3 +2,13 @@ tmps
 .playwright-mcp
 .claude
 .venv
+
+# 敏感配置文件
+inventory/**/secrets.yml
+inventory/**/secrets.yaml
+*.secret
+*.key
+
+# 本地环境配置
+.env
+.env.local
