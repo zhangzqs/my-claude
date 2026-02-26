@@ -49,7 +49,7 @@ my-claude/
 │           ├── settings.yml      # 公开配置变量
 │           └── secrets.yml       # 敏感配置（API Key 等）
 ├── playbooks/           # Ansible Playbook
-│   ├── sync_claude_config.yml   # 同步配置到 ~/.claude
+│   ├── setup.yml                # 一键部署（安装插件 + 同步配置）
 │   └── install_claude.yml       # 安装 Claude Code
 ├── ansible.cfg          # Ansible 全局配置
 └── tmps/                # 临时文件与日志
@@ -87,7 +87,7 @@ graph TD
     GROUPVARS --> SETTINGS["settings.yml"];
     GROUPVARS --> SECRETS["secrets.yml"];
 
-    PLAY --> SYNC["sync_claude_config.yml"];
+    PLAY --> SYNC["setup.yml"];
     PLAY --> INSTALL["install_claude.yml"];
 
     AGENTS --> AGENT_INIT["init-architect.md"];
@@ -106,14 +106,14 @@ graph TD
 
 ## 模块索引
 
-| 模块路径                       | 职责                                                      | 关键文件                                                                           |
-| ------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `claude-assets/`               | Claude 配置资源仓库，包含模板、命令、智能体、输出风格定义 | `settings.yml.j2`, `CLAUDE.md`                                                     |
-| `claude-assets/commands/`      | 自定义命令定义（Markdown 格式）                           | `git-commit.md`, `init-project.md`                                                 |
-| `claude-assets/agents/`        | 自定义智能体定义（子 Agent）                              | `init-architect.md`, `get-current-datetime.md`                                     |
-| `claude-assets/output-styles/` | 个性化输出风格定义（人格化）                              | `nekomata-engineer.md`, `laowang-engineer.md` 等                                   |
-| `inventory/`                   | Ansible 清单与变量管理                                    | `inventory.yml`, `settings.yml`, `secrets.yml`                                     |
-| `playbooks/`                   | Ansible Playbook 剧本                                     | `setup.yml`, `sync_claude_config.yml`, `install_plugins.yml`, `install_claude.yml` |
+| 模块路径                       | 职责                                                      | 关键文件                                                 |
+| ------------------------------ | --------------------------------------------------------- | -------------------------------------------------------- |
+| `claude-assets/`               | Claude 配置资源仓库，包含模板、命令、智能体、输出风格定义 | `settings.yml.j2`, `CLAUDE.md`                           |
+| `claude-assets/commands/`      | 自定义命令定义（Markdown 格式）                           | `git-commit.md`, `git-sync-branch.md`, `init-project.md` |
+| `claude-assets/agents/`        | 自定义智能体定义（子 Agent）                              | `init-architect.md`, `get-current-datetime.md`           |
+| `claude-assets/output-styles/` | 个性化输出风格定义（人格化）                              | `nekomata-engineer.md`, `laowang-engineer.md` 等         |
+| `inventory/`                   | Ansible 清单与变量管理                                    | `inventory.yml`, `settings.yml`, `secrets.yml`           |
+| `playbooks/`                   | Ansible Playbook 剧本                                     | `setup.yml`, `install_plugins.yml`, `install_claude.yml` |
 
 ---
 
@@ -166,7 +166,7 @@ uv run ansible-playbook playbooks/install_claude.yml
 uv run ansible-playbook playbooks/install_plugins.yml
 
 # 3. 同步配置
-uv run ansible-playbook playbooks/sync_claude_config.yml
+uv run ansible-playbook playbooks/setup.yml --tags sync_config
 ```
 
 ### 跳过特定步骤
@@ -206,13 +206,13 @@ ls -la ~/.claude/output-styles/
 uv run ansible-playbook playbooks/setup.yml
 
 # 同步配置到 ~/.claude（常用）
-uv run ansible-playbook playbooks/sync_claude_config.yml
+uv run ansible-playbook playbooks/setup.yml --tags sync_config
 
 # 安装插件
 uv run ansible-playbook playbooks/install_plugins.yml
 
 # 查看配置变量（不执行）
-uv run ansible-playbook playbooks/sync_claude_config.yml --check --diff
+uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 
 # 安装 Claude CLI（可选）
 uv run ansible-playbook playbooks/install_claude.yml
@@ -227,23 +227,33 @@ tail -f tmps/ansible.log
 ### 修改配置流程
 
 1. **修改变量**：编辑 `inventory/default/group_vars/all/settings.yml`
-2. **测试渲染**：运行 `ansible-playbook playbooks/sync_claude_config.yml --check --diff`
-3. **执行同步**：运行 `ansible-playbook playbooks/sync_claude_config.yml`
+2. **测试渲染**：运行 `ansible-playbook playbooks/setup.yml --tags sync_config --check --diff`
+3. **执行同步**：运行 `ansible-playbook playbooks/setup.yml --tags sync_config`
 4. **验证结果**：检查 `~/.claude/settings.json` 和相关文件
 
 ### 添加新的输出风格
 
 1. 在 `claude-assets/output-styles/` 创建新的 `.md` 文件
 2. 编写人格化指令（参考现有风格文件）
-3. 运行同步命令：`ansible-playbook playbooks/sync_claude_config.yml`
+3. 运行同步命令：`ansible-playbook playbooks/setup.yml --tags sync_config`
 4. 在 `settings.yml` 中修改 `outputStyle` 为新风格的文件名（不含 .md）
 
 ### 添加新的自定义命令
 
 1. 在 `claude-assets/commands/mc/` 创建新的 `.md` 文件
 2. 按照 Claude 命令规范编写 front-matter 和指令内容
-3. 运行同步命令：`ansible-playbook playbooks/sync_claude_config.yml`
+3. 运行同步命令：`ansible-playbook playbooks/setup.yml --tags sync_config`
 4. 使用命令：`/your-command-name`
+
+**Front-matter 必需字段**：
+
+```yaml
+description: 命令的简短描述（一句话）
+allowed-tools: 允许使用的工具列表（如 Read(**), Bash(**)）
+argument-hint: 参数提示（如 [--option] <required>）
+```
+
+**示例**：参考现有命令 `claude-assets/commands/mc/git-commit.md` 或 `git-sync-branch.md`
 
 ### 常见问题排查
 
@@ -254,7 +264,7 @@ tail -f tmps/ansible.log
 **解决**：使用 `uv run` 前缀执行命令（项目使用 uv 管理依赖）
 
 ```bash
-uv run ansible-playbook playbooks/sync_claude_config.yml
+uv run ansible-playbook playbooks/setup.yml --tags sync_config
 ```
 
 #### 2. Jinja2 渲染失败
@@ -268,7 +278,7 @@ uv run ansible-playbook playbooks/sync_claude_config.yml
 3. 使用 `--check` 模式预览渲染结果：
 
 ```bash
-uv run ansible-playbook playbooks/sync_claude_config.yml --check --diff
+uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 ```
 
 #### 3. rsync 同步失败
@@ -349,7 +359,7 @@ uv run ansible-playbook playbooks/sync_claude_config.yml --check --diff
 - `ojousama-engineer`：大小姐工程师风格（优雅、礼貌）
 - `laowang-engineer`：老王工程师风格（幽默、接地气）
 
-修改后运行 `ansible-playbook playbooks/sync_claude_config.yml` 生效。
+修改后运行 `ansible-playbook playbooks/setup.yml --tags sync_config` 生效。
 
 ### 模型配置
 
@@ -401,14 +411,14 @@ settings:
        - "serena@claude-plugins-official"
    ```
 
-3. 运行 `uv run ansible-playbook playbooks/sync_claude_config.yml`
+3. 运行 `uv run ansible-playbook playbooks/setup.yml --tags sync_config`
 
 **方法 2：自动安装并启用插件（推荐，适合新插件）**
 
 1. 编辑 `inventory/default/group_vars/all/settings.yml`
 2. 在 `enabled_plugins` 列表中添加插件名称
 3. 运行 `uv run ansible-playbook playbooks/install_plugins.yml`（自动安装）
-4. 运行 `uv run ansible-playbook playbooks/sync_claude_config.yml`（同步配置）
+4. 运行 `uv run ansible-playbook playbooks/setup.yml --tags sync_config`（同步配置）
 
 **特性说明**：
 
@@ -419,7 +429,7 @@ settings:
 #### 禁用插件
 
 1. 编辑 `settings.yml`，从 `enabled_plugins` 列表中移除插件名称
-2. 运行 `ansible-playbook playbooks/sync_claude_config.yml`
+2. 运行 `ansible-playbook playbooks/setup.yml --tags sync_config`
 
 #### 卸载插件
 
@@ -458,7 +468,7 @@ claude plugin list
            API_KEY: "your-api-key"
    ```
 
-3. 运行 `ansible-playbook playbooks/sync_claude_config.yml`
+3. 运行 `ansible-playbook playbooks/setup.yml --tags sync_config`
 
 #### 配置说明
 
@@ -561,6 +571,14 @@ Workflow 会自动：
 ---
 
 ## 变更记录
+
+### 2026-02-26
+
+- **feat(commands)**: 新增 `/git-sync-branch` 自定义命令，支持从上游主分支同步代码并自动解决冲突
+- **feat(commands)**: `/git-sync-branch` 支持全参数可选，自动推断 remote/branch/strategy
+- **feat(commands)**: `/git-sync-branch` 针对 PR 场景优化，检测到分支已推送时强制使用 merge 避免改写历史
+- **docs(CLAUDE.md)**: 修正所有 `sync_claude_config.yml` 引用为 `setup.yml --tags sync_config`
+- **docs(CLAUDE.md)**: 补充自定义命令开发流程，新增 front-matter 必需字段说明与示例
 
 ### 2026-02-24
 

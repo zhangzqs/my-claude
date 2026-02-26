@@ -1,10 +1,12 @@
 ---
-description: 仅用 Git 分析改动并自动生成 conventional commit 信息（可选 emoji）；必要时建议拆分提交，默认运行本地 Git 钩子（可 --no-verify 跳过）
-allowed-tools: Read(**), Exec(git status, git diff, git add, git restore --staged, git commit, git rev-parse, git config), Write(.git/COMMIT_EDITMSG)
-argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <scope>] [--type <type>]
+description: 仅用 Git 分析改动并自动生成 conventional commit 信息（可选 emoji）；必要时建议拆分提交，默认运行本地 Git 钩子（可 --no-verify 跳过）；智能推断是否推送到远程
+allowed-tools: Read(**), Exec(git status, git diff, git add, git restore --staged, git commit, git push, git pull, git rev-parse, git config), Write(.git/COMMIT_EDITMSG)
+argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <scope>] [--type <type>] [--push] [--no-push]
 # examples:
-#   - /git-commit                           # 分析当前改动，生成提交信息
+#   - /git-commit                           # 分析改动，生成提交，智能推断是否推送
 #   - /git-commit --all                     # 暂存所有改动并提交
+#   - /git-commit --push                    # 强制推送（即使是新分支）
+#   - /git-commit --no-push                 # 仅提交，不推送
 #   - /git-commit --no-verify               # 跳过 Git 钩子检查
 #   - /git-commit --emoji                   # 在提交信息中包含 emoji
 #   - /git-commit --scope ui --type feat    # 指定作用域和类型
@@ -19,6 +21,7 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 - 判断是否需要**拆分为多次提交**
 - 为每个提交生成 **Conventional Commits** 风格的信息（可选 emoji）
 - 按需执行 `git add` 与 `git commit`（默认运行本地 Git 钩子；可 `--no-verify` 跳过）
+- **智能推断是否推送**：若分支已有远程跟踪分支，自动推送；若是新分支，询问用户
 
 ---
 
@@ -26,6 +29,8 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 
 ```bash
 /git-commit
+/git-commit --push
+/git-commit --no-push
 /git-commit --no-verify
 /git-commit --emoji
 /git-commit --all --signoff
@@ -42,6 +47,8 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 - `--emoji`：在提交信息中包含 emoji 前缀（省略则使用纯文本）。
 - `--scope <scope>`：指定提交作用域（如 `ui`、`docs`、`api`），写入消息头部。
 - `--type <type>`：强制提交类型（如 `feat`、`fix`、`docs` 等），覆盖自动判断。
+- `--push`：**强制推送**到远程（即使是新分支，不询问）。
+- `--no-push`：**仅提交**，不推送到远程。
 
 > 注：如框架不支持交互式确认，可在 front-matter 中开启 `confirm: true` 以避免误操作。
 
@@ -74,8 +81,24 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
    - 单提交场景：`git commit [-S] [--no-verify] [-s] -F .git/COMMIT_EDITMSG`
    - 多提交场景（如接受拆分建议）：按分组给出 `git add <paths> && git commit ...` 的明确指令；若允许执行则逐一完成。
 
-6. **安全回滚**
+6. **智能推送（Push Intelligence）**
+   - **检测推送需求**：
+     - 执行 `git rev-parse --abbrev-ref @{u}` 检查当前分支是否有远程跟踪分支。
+     - 若有跟踪分支（如 `origin/feature-branch`） → **自动推送**。
+     - 若无跟踪分支（新分支） → **询问用户**：是否推送并设置上游？
+   - **推送策略**：
+     - 若传入 `--push` → 强制推送（即使是新分支，不询问）。
+     - 若传入 `--no-push` → 跳过推送。
+     - 若传入 `--amend` → 检测到修补提交且分支已推送，警告需要 force push，询问是否继续。
+   - **推送失败处理**：
+     - 若推送失败（如远程有新提交），自动执行 `git pull --rebase`（保持线性历史）。
+     - 若 pull 产生冲突，尝试自动解决（基于语义分析）。
+     - 若自动解决失败，报告冲突文件并给出建议命令。
+     - 解决冲突后，重新推送。
+
+7. **安全回滚**
    - 如误暂存，可用 `git restore --staged <paths>` 撤回暂存（命令会给出指令，不修改文件内容）。
+   - 如误推送，给出回滚命令：`git revert <commit-sha>` 或 `git reset --hard HEAD~1 && git push --force`（需确认）。
 
 ---
 
@@ -154,5 +177,13 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 - **仅使用 Git**：不调用任何包管理器/构建命令（无 `pnpm`/`npm`/`yarn` 等）。
 - **尊重钩子**：默认执行本地 Git 钩子；使用 `--no-verify` 可跳过。
 - **不改源码内容**：命令只读写 `.git/COMMIT_EDITMSG` 与暂存区；不会直接编辑工作区文件。
+- **智能推送**：
+  - 若分支已有远程跟踪分支 → 自动推送。
+  - 若是新分支 → 询问是否推送并设置上游（`git push -u`）。
+  - 使用 `--push` 强制推送，`--no-push` 跳过推送。
+- **推送失败自动修复**：
+  - 远程有新提交时，自动 `git pull --rebase` 并重新推送。
+  - 冲突会尝试自动解决（基于语义分析）。
 - **安全提示**：在 rebase/merge 冲突、detached HEAD 等状态下会先提示处理/确认再继续。
-- **可审可控**：如开启 `confirm: true`，每个实际 `git add`/`git commit` 步骤都会进行二次确认。
+- **可审可控**：如开启 `confirm: true`，每个实际 `git add`/`git commit`/`git push` 步骤都会进行二次确认。
+- **amend + push 警告**：若使用 `--amend` 且分支已推送，会警告需要 force push，询问是否继续。
