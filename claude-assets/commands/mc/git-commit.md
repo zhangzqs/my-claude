@@ -143,7 +143,7 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 
 ## Examples
 
-**Good (使用 --emoji)**
+### Good (使用 --emoji)
 
 - ✨ feat(ui): add user authentication flow
 - 🐛 fix(api): handle token refresh race condition
@@ -153,7 +153,7 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 - 🔧 chore: update git hooks and repository settings
 - ⏪️ revert: revert "feat(core): introduce streaming API"
 
-**Good (不使用 --emoji)**
+### Good (不使用 --emoji)
 
 - feat(ui): add user authentication flow
 - fix(api): handle token refresh race condition
@@ -163,7 +163,7 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 - chore: update git hooks and repository settings
 - revert: revert "feat(core): introduce streaming API"
 
-**Split Example**
+### Split Example
 
 - `feat(types): add new type defs for payment method`
 - `docs: update API docs for new types`

@@ -8,13 +8,12 @@
 
 - [项目愿景](#项目愿景)
 - [架构总览](#架构总览)
-- [模块结构图](#模块结构图)
 - [模块索引](#模块索引)
 - [快速开始](#快速开始)
 - [运行与开发](#运行与开发)
 - [全局开发规范](#全局开发规范)
 - [AI 使用指引](#ai-使用指引)
-- [变更记录](#变更记录)
+- [CI/CD 集成](#cicd-集成)
 
 ---
 
@@ -49,8 +48,7 @@ my-claude/
 │           ├── settings.yml      # 公开配置变量
 │           └── secrets.yml       # 敏感配置（API Key 等）
 ├── playbooks/           # Ansible Playbook
-│   ├── setup.yml                # 一键部署（安装插件 + 同步配置）
-│   └── install_claude.yml       # 安装 Claude Code
+│   └── setup.yml                # 一键部署（安装插件 + 同步配置）
 ├── ansible.cfg          # Ansible 全局配置
 └── tmps/                # 临时文件与日志
     ├── ansible.log      # Ansible 执行日志
@@ -66,44 +64,6 @@ my-claude/
 
 ---
 
-## 模块结构图
-
-```mermaid
-graph TD
-    ROOT["🏠 my-claude<br/>(项目根)"] --> ASSETS["📦 claude-assets<br/>(配置资源)"];
-    ROOT --> INV["🗂️ inventory<br/>(Ansible 清单)"];
-    ROOT --> PLAY["▶️ playbooks<br/>(Ansible 剧本)"];
-    ROOT --> TMPS["🗑️ tmps<br/>(临时文件)"];
-
-    ASSETS --> AGENTS["🤖 agents<br/>(自定义智能体)"];
-    ASSETS --> CMDS["⌨️ commands<br/>(自定义命令)"];
-    ASSETS --> STYLES["🎨 output-styles<br/>(输出风格)"];
-    ASSETS --> CLAUDEMD["📝 CLAUDE.md"];
-    ASSETS --> TEMPLATE["🔧 settings.yml.j2"];
-
-    INV --> DEFAULT["default<br/>(默认环境)"];
-    DEFAULT --> INVYML["inventory.yml"];
-    DEFAULT --> GROUPVARS["group_vars/all"];
-    GROUPVARS --> SETTINGS["settings.yml"];
-    GROUPVARS --> SECRETS["secrets.yml"];
-
-    PLAY --> SYNC["setup.yml"];
-    PLAY --> INSTALL["install_claude.yml"];
-
-    AGENTS --> AGENT_INIT["init-architect.md"];
-    AGENTS --> AGENT_TIME["get-current-datetime.md"];
-
-    CMDS --> CMD_COMMIT["git-commit.md"];
-    CMDS --> CMD_INIT["init-project.md"];
-
-    STYLES --> STYLE1["nekomata-engineer.md"];
-    STYLES --> STYLE2["laowang-engineer.md"];
-    STYLES --> STYLE3["ojousama-engineer.md"];
-    STYLES --> STYLE4["engineer-professional.md"];
-```
-
----
-
 ## 模块索引
 
 | 模块路径                       | 职责                                                      | 关键文件                                                 |
@@ -113,7 +73,7 @@ graph TD
 | `claude-assets/agents/`        | 自定义智能体定义（子 Agent）                              | `init-architect.md`, `get-current-datetime.md`           |
 | `claude-assets/output-styles/` | 个性化输出风格定义（人格化）                              | `nekomata-engineer.md`, `laowang-engineer.md` 等         |
 | `inventory/`                   | Ansible 清单与变量管理                                    | `inventory.yml`, `settings.yml`, `secrets.yml`           |
-| `playbooks/`                   | Ansible Playbook 剧本                                     | `setup.yml`, `install_plugins.yml`, `install_claude.yml` |
+| `playbooks/`                   | Ansible Playbook 剧本                                     | `setup.yml`（通过 tags 控制执行阶段）                    |
 
 ---
 
@@ -154,32 +114,17 @@ uv run ansible-playbook playbooks/setup.yml
 3. 同步配置到 `~/.claude/settings.json`
 4. 验证部署结果
 
-### 分步部署（可选）
-
-如果需要更精细的控制，可以分步执行：
-
-```bash
-# 1. 安装 Claude CLI（如果尚未安装）
-uv run ansible-playbook playbooks/install_claude.yml
-
-# 2. 安装插件
-uv run ansible-playbook playbooks/install_plugins.yml
-
-# 3. 同步配置
-uv run ansible-playbook playbooks/setup.yml --tags sync_config
-```
-
-### 跳过特定步骤
+### 常用选项
 
 ```bash
 # 跳过插件安装（仅同步配置）
-uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins
+uv run ansible-playbook playbooks/setup.yml --tags sync_config
 
-# 仅安装插件（不同步配置）
+# 仅安装插件
 uv run ansible-playbook playbooks/setup.yml --tags install_plugins
 
-# 仅同步配置（不安装插件）
-uv run ansible-playbook playbooks/setup.yml --tags sync_config
+# 查看配置变量（不执行）
+uv run ansible-playbook playbooks/setup.yml --check --diff
 ```
 
 ### 验证配置
@@ -208,14 +153,14 @@ uv run ansible-playbook playbooks/setup.yml
 # 同步配置到 ~/.claude（常用）
 uv run ansible-playbook playbooks/setup.yml --tags sync_config
 
-# 安装插件
-uv run ansible-playbook playbooks/install_plugins.yml
+# 仅安装插件
+uv run ansible-playbook playbooks/setup.yml --tags install_plugins
+
+# 仅检查 Claude CLI（不安装）
+uv run ansible-playbook playbooks/setup.yml --tags install_cli --check
 
 # 查看配置变量（不执行）
 uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
-
-# 安装 Claude CLI（可选）
-uv run ansible-playbook playbooks/install_claude.yml
 
 # 验证 Ansible 配置
 ansible-config dump --only-changed
@@ -293,7 +238,7 @@ uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 
 #### 4. 插件安装失败
 
-**问题**：`install_plugins.yml` 执行失败
+**问题**：插件安装步骤执行失败
 
 **排查步骤**：
 
@@ -323,6 +268,35 @@ uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 - **公开配置**：放在 `settings.yml`（模型名称、API Base URL、输出风格等）
 - **敏感信息**：放在 `secrets.yml`（API Key、密码等），并添加到 `.gitignore`
 - **变量命名**：使用 `settings.` 前缀表示公开配置，`secrets.` 前缀表示敏感信息
+
+### Markdown 文档规范
+
+- `npm install -g markdownlint-cli` - 安装 Markdown 格式检查工具
+- `markdownlint "**/*.md"` - 检查所有 Markdown 文件格式
+- `.markdownlint.json` - 配置文件，已放宽 MD013 行长度至 120（中文文档友好）
+- **Front-matter 陷阱**：YAML front-matter 中不要使用 `#` 注释，会导致解析失败
+- **代码块规范**：所有代码块必须指定语言（如 ` ```text `、` ```bash `）
+- **标题规范**：不要用加粗代替标题，使用 `###` 或引用块 `>`
+
+### 调试技巧
+
+- `cat -A <file>` - 查看文件的精确字符（包括全角/半角、隐藏字符）
+- `od -c <file>` - 以八进制显示文件字节内容（用于调试编码问题）
+- `sed -i 's/pattern/replacement/' <file>` - 批量替换文本（支持正则表达式）
+
+### 文档维护规范
+
+- **CLAUDE.md 定位**：开发指南（架构、规范、工具），而非项目历史或变更日志
+- **禁止内容**：变更记录（用 git log）、大型 Mermaid 图（信息重复且占 token）、已废弃的命令/文件引用
+- **定期验证**：运行 `grep -o 'playbooks/[a-z_-]*\.yml' CLAUDE.md | sort -u | xargs -I {} test -f {} || echo "Missing: {}"` 检查引用文件是否存在
+- **精简优先级**：删除重复信息 > 删除过时内容 > 压缩冗余说明 > 链接到详细文档
+
+### Ansible Playbook 组织模式
+
+- 本项目使用**单一入口 playbook**（`setup.yml`）+ tags 控制执行阶段
+- 不要创建独立的 `install_*.yml`，统一通过 `setup.yml --tags <stage>` 执行
+- 可用 tags：`install_cli`、`install_plugins`、`sync_config`、`verify`
+- 查看所有 tags：`grep -E '^\s+tags:' playbooks/setup.yml | sort -u`
 
 ### Git 提交规范
 
@@ -378,27 +352,17 @@ settings:
 
 #### 查看可用插件
 
-官方市场（`claude-plugins-official`）共有 13 个可用插件：
+官方市场（`claude-plugins-official`）提供多个插件，包括：
 
-| 插件名称        | 功能描述                                |
-| --------------- | --------------------------------------- |
-| `playwright`    | 浏览器自动化与端到端测试                |
-| `serena`        | 语义代码分析与重构建议                  |
-| `context7`      | 最新文档查询（从源仓库拉取）            |
-| `github`        | GitHub 仓库管理（Issues、PR、代码审查） |
-| `gitlab`        | GitLab DevOps 平台集成                  |
-| `slack`         | Slack 工作区集成                        |
-| `asana`         | Asana 项目管理集成                      |
-| `linear`        | Linear Issue 跟踪集成                   |
-| `firebase`      | Firebase 后端管理                       |
-| `supabase`      | Supabase 后端集成                       |
-| `stripe`        | Stripe 支付 API 集成                    |
-| `greptile`      | AI 代码审查代理                         |
-| `laravel-boost` | Laravel 开发工具包                      |
+- `playwright`（浏览器自动化）、`serena`（语义代码分析）、`context7`（文档查询）
+- `github`/`gitlab`（代码托管平台）、`slack`/`linear`/`asana`（协作工具）
+- `firebase`/`supabase`（后端服务）、`stripe`（支付集成）
+
+**完整列表**：运行 `claude plugin list --available` 或查看 `inventory/default/group_vars/all/settings.yml` 中的 `enabled_plugins`
 
 #### 启用插件
 
-**方法 1：仅更新配置（推荐，适合已安装插件）**
+##### 方法 1：仅更新配置（推荐，适合已安装插件）
 
 1. 编辑 `inventory/default/group_vars/all/settings.yml`
 2. 在 `enabled_plugins` 列表中添加插件名称：
@@ -413,23 +377,22 @@ settings:
 
 3. 运行 `uv run ansible-playbook playbooks/setup.yml --tags sync_config`
 
-**方法 2：自动安装并启用插件（推荐，适合新插件）**
+##### 方法 2：自动安装并启用插件（推荐，适合新插件）
 
 1. 编辑 `inventory/default/group_vars/all/settings.yml`
 2. 在 `enabled_plugins` 列表中添加插件名称
-3. 运行 `uv run ansible-playbook playbooks/install_plugins.yml`（自动安装）
-4. 运行 `uv run ansible-playbook playbooks/setup.yml --tags sync_config`（同步配置）
+3. 运行 `uv run ansible-playbook playbooks/setup.yml`（自动安装并同步）
 
 **特性说明**：
 
-- `install_plugins.yml` 支持幂等性：已安装的插件不会重复安装
+- `setup.yml` 支持幂等性：已安装的插件不会重复安装
 - 自动检测缺失插件，仅安装未安装的插件
 - 安装完成后自动验证插件可用性
 
 #### 禁用插件
 
 1. 编辑 `settings.yml`，从 `enabled_plugins` 列表中移除插件名称
-2. 运行 `ansible-playbook playbooks/setup.yml --tags sync_config`
+2. 运行 `uv run ansible-playbook playbooks/setup.yml --tags sync_config`
 
 #### 卸载插件
 
@@ -530,104 +493,20 @@ secrets:
 
 本项目提供 GitHub Actions workflow，可在全新机器上自动化测试部署流程。
 
-#### 快速开始
+#### CI/CD 快速开始
 
-**无需任何配置**，直接推送即可：
+直接推送即可触发自动部署测试（无需配置）：
 
 ```bash
-git add .github/workflows/test-deployment.yml
-git commit -m "ci: 新增 GitHub Actions 自动化部署测试"
-git push origin master
+git push origin master  # 推送到 master/main/develop 自动触发
 ```
 
-Workflow 会自动：
-
-1. ✅ 安装 Python + uv + Ansible
-2. ✅ 安装 Node.js + Claude CLI
-3. ✅ 生成配置文件（使用占位符 API Key）
-4. ✅ 验证 Ansible Playbook 语法
-5. ✅ 同步配置到 `~/.claude/`
-6. ✅ 生成部署报告
-
-#### 可选配置（真实 API Key）
-
-如需使用真实 API Key 测试，在仓库的 **Settings → Secrets and variables → Actions** 中配置：
-
-- `ANTHROPIC_API_KEY`：Anthropic API 密钥
-
-#### 触发方式
-
-- **自动触发**：推送到 `master`/`main`/`develop` 分支
-- **手动触发**：**Actions** 标签 → **Test Claude Deployment** → **Run workflow**
-
-#### 查看测试结果
-
-1. 进入 **Actions** 标签
-2. 选择 workflow run
-3. 查看执行日志或下载 **Artifacts** 中的部署报告
+**可选配置**：在仓库 Settings → Secrets 中添加 `ANTHROPIC_API_KEY` 测试真实 API
 
 **详细文档**：[.github/workflows/README.md](.github/workflows/README.md)
-
----
-
-## 变更记录
-
-### 2026-02-26
-
-- **feat(commands)**: 新增 `/git-sync-branch` 自定义命令，支持从上游主分支同步代码并自动解决冲突
-- **feat(commands)**: `/git-sync-branch` 支持全参数可选，自动推断 remote/branch/strategy
-- **feat(commands)**: `/git-sync-branch` 针对 PR 场景优化，检测到分支已推送时强制使用 merge 避免改写历史
-- **docs(CLAUDE.md)**: 修正所有 `sync_claude_config.yml` 引用为 `setup.yml --tags sync_config`
-- **docs(CLAUDE.md)**: 补充自定义命令开发流程，新增 front-matter 必需字段说明与示例
-
-### 2026-02-24
-
-- **docs(CLAUDE.md)**: 优化根级文档结构，移除子模块文档链接（子目录为配置资源分类，非独立模块）
-- **docs(CLAUDE.md)**: 简化模块索引表格，删除失效的"文档链接"列
-- **docs(CLAUDE.md)**: 移除 Mermaid 结构图中的失效 click 指令
-- **docs(CLAUDE.md)**: 新增"命令执行说明"，明确 `uv run` 前缀使用场景
-- **docs(CLAUDE.md)**: 新增"常见问题排查"章节，涵盖 Ansible、Jinja2、rsync、插件安装等故障处理
-- **improvement**: 文档质量从 73/100（B-）提升至 88/100（A-）
-
-### 2026-02-18
-
-- **feat(config)**: 新增 Claude 插件与 MCP 服务器配置管理
-- **feat(settings.yml)**: 新增 `enabled_plugins` 和 `custom_mcp_servers` 配置项
-- **feat(template)**: 扩展 `settings.yml.j2` 模板，支持渲染 `enabledPlugins` 和 `mcpServers` 字段
-- **feat(playbook)**: 新增 `install_plugins.yml`，实现插件自动安装功能（支持幂等性）
-- **feat(playbook)**: 新增 `setup.yml`，实现一键部署流程（检查 CLI + 安装插件 + 同步配置 + 验证）
-- **docs(CLAUDE.md)**: 新增"Claude 插件管理"和"自定义 MCP 服务器管理"章节
-- **docs(CLAUDE.md)**: 更新"快速开始"章节，推荐使用 `setup.yml` 一键部署
-- **docs(CLAUDE.md)**: 更新模块索引表格，添加 `setup.yml` 和 `install_plugins.yml` 条目
-
-### 2026-02-17
-
-- **feat(docs)**: 初始化完整 AI 上下文文档（根级 CLAUDE.md）
-- **feat(docs)**: 新增 Mermaid 模块结构图，可视化项目架构
-- **feat(docs)**: 新增模块索引表格，清晰列出各模块职责与文档链接
-
-### 2026-02-12
-
-- **feat(docs)**: 新增 Claude 全局指令文档和 git-commit 命令
-- **feat(playbook)**: 新增同步 commands 目录和 CLAUDE.md 文件的任务
-
-### 2026-02-11
-
-- **refactor(config)**: 细化模型配置结构，将单一模型配置拆分为多层级模型
-- **fix(settings.yml)**: 注释原 outputStyle 配置，将其值从 "nekomata-engineer" 更新为 "laowang-engineer"
-
-### 2026-02-10
-
-- **fix(ansible.cfg)**: 移除 Ansible 弃用警告配置项
-- **feat(settings.yml)**: 更新 outputStyle 配置为 "nekomata-engineer"
-- **feat**: 创建 playbooks/sync_claude_config.yml 用于渲染和同步 claude 配置文件
 
 ---
 
 ## 许可证
 
 本项目采用 [MIT License](LICENSE) 开源
-
----
-
-**最后更新时间**: 2026-02-24T00:00:00+00:00

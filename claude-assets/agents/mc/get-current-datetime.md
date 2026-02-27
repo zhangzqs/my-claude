@@ -5,6 +5,8 @@ tools: Bash, Read, Write
 color: cyan
 ---
 
+# Get Current DateTime Agent
+
 执行 `date` 命令并仅返回原始输出。
 
 ```bash

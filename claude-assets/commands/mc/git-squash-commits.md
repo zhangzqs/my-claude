@@ -2,12 +2,12 @@
 description: PR 前将开发分支的多个 commit 压缩成一个，自动同步上游代码并生成 Conventional Commits 风格的提交信息（可选 emoji）
 allowed-tools: Bash(git fetch, git checkout, git merge, git reset, git commit, git branch, git rev-parse, git log, git status, git diff, git remote, git merge-base), Read(**), Write(.git/COMMIT_EDITMSG)
 argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [--no-verify] [--emoji] [--scope <scope>] [--type <type>]
-# examples:
-#   - /git-squash-commits                           # 自动推断，压缩所有提交
-#   - /git-squash-commits --emoji                   # 使用 emoji 提交信息
-#   - /git-squash-commits --scope ui --type feat    # 指定作用域和类型
-#   - /git-squash-commits --no-sync                 # 仅压缩，不同步上游
-#   - /git-squash-commits --backup                  # 压缩前创建备份分支
+examples:
+  - /git-squash-commits
+  - /git-squash-commits --emoji
+  - /git-squash-commits --scope ui --type feat
+  - /git-squash-commits --no-sync
+  - /git-squash-commits --backup
 ---
 
 # Claude Command: Squash Commits (Git-only)
@@ -76,12 +76,14 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [-
      - **冲突处理**：
        - 若产生冲突，尝试自动解决（基于语义分析）。
        - 若自动解决失败，报告冲突文件并给出建议命令：
+
          ```bash
          # 手动解决冲突后执行：
          git add <冲突文件>
          git commit -m "resolve merge conflicts"
          # 然后重新运行此命令
          ```
+
        - 退出命令，等待用户手动处理。
 
 4. **备份当前分支（可选）**
@@ -95,6 +97,7 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [-
    - 若提交数量为 0，提示用户当前分支没有新提交，退出命令。
    - 若提交数量为 1，询问用户是否继续（已经是单个提交，可能不需要压缩）。
    - 输出提交列表供用户确认：
+
      ```text
      检测到 5 个提交需要压缩：
      - abc1234 feat: add feature A
@@ -136,6 +139,7 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [-
 9. **验证与对比**
    - 执行 `git log --oneline --graph -5` 显示最近提交历史。
    - 对比压缩前后的提交数量：
+
      ```text
      压缩完成！
      - 原提交数量：5
@@ -143,7 +147,9 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [-
      - 压缩提交 hash：abc1234
      - 压缩提交标题：feat(ui): implement user authentication flow
      ```
+
    - 若创建了备份分支，提醒用户：
+
      ```text
      备份分支已创建：feat-dev-backup-20260226-143022
      若需要恢复，请执行：git reset --hard feat-dev-backup-20260226-143022
@@ -182,7 +188,7 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [-
 
 ## Examples
 
-**Good (使用 --emoji)**
+### Good (使用 --emoji)
 
 - ✨ feat(ui): implement user authentication flow
 - 🐛 fix(api): handle token refresh race condition
@@ -191,7 +197,7 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [-
 - ✅ test: add unit tests for rate limiter
 - 🔧 chore: squash commits before PR
 
-**Good (不使用 --emoji)**
+### Good (不使用 --emoji)
 
 - feat(ui): implement user authentication flow
 - fix(api): handle token refresh race condition
@@ -200,7 +206,7 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [-
 - test: add unit tests for rate limiter
 - chore: squash commits before PR
 
-**提交消息体示例（列出原始提交）**
+### 提交消息体示例（列出原始提交）
 
 ```text
 feat(ui): implement user authentication flow
@@ -332,9 +338,11 @@ feat(ui): implement user authentication flow
 
 - 若分支**尚未推送**：直接 `git push -u origin <分支名>`。
 - 若分支**已推送**：需要 **force push**（会改写远程历史）：
+
   ```bash
   git push --force-with-lease
   ```
+
   > 注意：force push 会影响其他基于此分支开发的人，使用前请确认无他人依赖此分支。
 
 ### Q6: 如何恢复压缩前的提交？

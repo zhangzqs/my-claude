@@ -23,6 +23,7 @@ settings:
     - "typescript-lsp@claude-plugins-official" # 官方 TypeScript LSP 插件，提供 TypeScript 语言的代码智能能力
     - "feature-dev@claude-plugins-official" # 官方 Feature Dev 插件，提供功能开发规划和代码生成能力
     - "github@claude-plugins-official" # 官方 GitHub 插件，包含了 Github MCP
+    - "skill-creator@claude-plugins-official" # 官方 Skill Creator 插件，提供自定义技能创建能力
 
   # ===== 自定义 MCP 服务器配置（非插件市场） =====
   # 用于配置非插件市场的自定义 MCP 服务器
