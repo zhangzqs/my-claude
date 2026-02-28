@@ -1,48 +1,65 @@
 # settings.yml.j2
 # 用于渲染 claude settings 的 YAML 模板
+# 所有可配置变量均从 inventory/default/group_vars/all/settings.yml 传入
 
 schema: "https://json.schemastore.org/claude-code-settings.json"
+
+# ===== 环境变量 =====
 env:
-  DISABLE_TELEMETRY: "1"
-  DISABLE_ERROR_REPORTING: "1"
-  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
-  MCP_TIMEOUT: "60000"
-  # 模型的API密钥
+{% for key, value in settings.env.items() %}
+  {{ key }}: "{{ value }}"
+{% endfor %}
   ANTHROPIC_API_KEY: "{{ secrets.settings.env.ANTHROPIC_API_KEY }}"
-  # 模型的baseUrl
-  ANTHROPIC_BASE_URL: "{{ settings.env.ANTHROPIC_BASE_URL }}"
-  # 用于opus或opusplan当计划模式处于活动状态时的模型。
-  ANTHROPIC_DEFAULT_OPUS_MODEL: "{{ settings.env.ANTHROPIC_DEFAULT_OPUS_MODEL }}"
-  # 当计划模式未激活时sonnet, 要使用的模型。opusplan
-  ANTHROPIC_DEFAULT_SONNET_MODEL: "{{ settings.env.ANTHROPIC_DEFAULT_SONNET_MODEL }}"
-  # haiku用于后台功能的模型
-  ANTHROPIC_DEFAULT_HAIKU_MODEL: "{{ settings.env.ANTHROPIC_DEFAULT_HAIKU_MODEL }}"
-  # 用于子代理的模型
-  CLAUDE_CODE_SUBAGENT_MODEL: "{{ settings.env.CLAUDE_CODE_SUBAGENT_MODEL }}"
-includeCoAuthoredBy: false
+
+# ===== 模型配置 =====
+model: "{{ settings.model }}"
+alwaysThinkingEnabled: {{ settings.alwaysThinkingEnabled | lower }}
+
+# ===== 输出风格与语言 =====
+outputStyle: "{{ settings.outputStyle }}"
+{% if settings.language is defined and settings.language %}
+language: "{{ settings.language }}"
+{% endif %}
+
+# ===== 权限配置 =====
 permissions:
+{% if settings.permissions.defaultMode is defined and settings.permissions.defaultMode != "default" %}
+  defaultMode: "{{ settings.permissions.defaultMode }}"
+{% endif %}
   allow:
-    - Bash
-    - Edit
-    - Glob
-    - Grep
-    - KillShell
-    - NotebookEdit
-    - Read
-    - Task
-    - TodoWrite
-    - WebFetch
-    - WebSearch
-    - Write
+{% for tool in settings.permissions.allow %}
+    - {{ tool }}
+{% endfor %}
+{% if settings.permissions.deny | length > 0 %}
+  deny:
+{% for rule in settings.permissions.deny %}
+    - {{ rule }}
+{% endfor %}
+{% else %}
   deny: []
-hooks: {}
+{% endif %}
+
+# ===== Git 归属配置（不添加 Claude 署名） =====
+attribution:
+  commit: ""
+  pr: ""
+
+# ===== 会话与存储 =====
+cleanupPeriodDays: {{ settings.cleanupPeriodDays }}
+
+# ===== 状态行 =====
 statusLine:
   type: command
   command: ccline
   padding: 0
-outputStyle: "{{ settings.outputStyle }}"
-model: "{{ settings.model }}"
-alwaysThinkingEnabled: true
+
+# ===== Hooks 钩子 =====
+{% if settings.hooks | length > 0 %}
+hooks:
+{{ settings.hooks | to_nice_yaml | indent(2, first=true) }}
+{% else %}
+hooks: {}
+{% endif %}
 {% if settings.enabled_plugins is defined and settings.enabled_plugins | length > 0 %}
 
 # ===== Claude 插件启用配置 =====

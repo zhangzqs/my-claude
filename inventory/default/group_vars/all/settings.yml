@@ -1,15 +1,62 @@
 settings:
+  # ===== 模型配置 =====
   model: "opus[1m]"
+  alwaysThinkingEnabled: true
   env:
     ANTHROPIC_BASE_URL: https://openai.qiniu.com
     ANTHROPIC_DEFAULT_OPUS_MODEL: "claude-4.6-opus"
     ANTHROPIC_DEFAULT_SONNET_MODEL: "claude-4.5-sonnet"
     ANTHROPIC_DEFAULT_HAIKU_MODEL: "claude-4.6-haiku"
     CLAUDE_CODE_SUBAGENT_MODEL: "claude-4.5-sonnet"
+    # 隐私与遥测控制
+    DISABLE_TELEMETRY: "1"
+    DISABLE_ERROR_REPORTING: "1"
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+    # MCP 超时时间（毫秒）
+    MCP_TIMEOUT: "60000"
+
+  # ===== 输出风格与语言 =====
   # outputStyle: "nekomata-engineer"
   # outputStyle: "laowang-engineer"
   # outputStyle: "tangtang-bot-engineer"
   outputStyle: "marionette-engineer"
+  # 首选响应语言（如 zh-CN、en、ja），比 CLAUDE.md 中的指令更底层可靠
+  language: "zh-CN"
+
+  # ===== 权限配置 =====
+  permissions:
+    # 默认权限模式：default / acceptEdits / plan / dontAsk / bypassPermissions / delegate
+    defaultMode: "default"
+    allow:
+      - Bash
+      - Edit
+      - Glob
+      - Grep
+      - KillShell
+      - NotebookEdit
+      - Read
+      - Task
+      - TodoWrite
+      - WebFetch
+      - WebSearch
+      - Write
+    deny: []
+
+  # ===== 会话与存储 =====
+  # 聊天记录保留天数（0 = 永不清理）
+  cleanupPeriodDays: 30
+
+  # ===== Hooks 钩子 =====
+  # 支持的钩子类型：SessionStart / SessionEnd / PreToolUse / PostToolUse /
+  #   PostToolUseFailure / UserPromptSubmit / Stop / TaskCompleted /
+  #   ConfigChange / Notification / PreCompact / SubagentStart / SubagentStop 等
+  # 格式示例：
+  #   hooks:
+  #     SessionStart:
+  #       - type: command
+  #         command: "echo 'Session started'"
+  #         timeout: 30
+  hooks: {}
 
   # ===== Claude 插件配置（来自官方市场） =====
   enabled_plugins:
