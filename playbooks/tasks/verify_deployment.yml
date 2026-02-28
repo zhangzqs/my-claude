@@ -54,3 +54,23 @@
       - settings_data.outputStyle == settings.outputStyle
     fail_msg: "输出风格配置不匹配"
     success_msg: "✓ 输出风格：{{ settings_data.outputStyle }}"
+
+- name: 校验 settings.json 符合 JSON Schema
+  shell: >
+    check-jsonschema
+    --schemafile "https://json.schemastore.org/claude-code-settings.json"
+    ~/.claude/settings.json
+  register: schema_validation
+  changed_when: false
+  failed_when: false
+
+- name: 显示 Schema 校验结果
+  debug:
+    msg: "{{ '✓ settings.json 通过 JSON Schema 校验' if schema_validation.rc == 0 else '⚠ settings.json Schema 校验发现问题：\n' + schema_validation.stderr }}"
+
+- name: Schema 校验失败时发出警告（不阻断部署）
+  debug:
+    msg: |
+      ⚠️  Schema 校验未通过，但不影响部署。
+      建议检查并修复以上问题以确保配置兼容性。
+  when: schema_validation.rc != 0

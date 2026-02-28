@@ -1,4 +1,5 @@
 settings:
+  model: "opus[1m]"
   env:
     ANTHROPIC_BASE_URL: https://openai.qiniu.com
     ANTHROPIC_DEFAULT_OPUS_MODEL: "claude-4.6-opus"

@@ -1,0 +1,115 @@
+---
+# playbooks/tasks/install_cli.yml
+# 检查并自动安装 CLI 工具（Claude CLI、ccline）
+
+- name: 显示阶段信息
+  debug:
+    msg: |
+      ========================================
+      阶段 1：检查并安装 CLI 工具
+      ========================================
+
+# --- Claude CLI ---
+
+- name: 检查 Claude CLI 是否已安装
+  shell: which claude
+  register: claude_check
+  changed_when: false
+  failed_when: false
+
+- name: 获取 Claude CLI 版本
+  command: claude --version
+  register: claude_version
+  changed_when: false
+  when: claude_check.rc == 0
+
+- name: 显示 Claude CLI 状态
+  debug:
+    msg: "✓ Claude CLI 已安装：{{ claude_version.stdout | default('') }}"
+  when: claude_check.rc == 0
+
+- name: 安装 Claude CLI
+  npm:
+    name: "@anthropic-ai/claude-code"
+    global: true
+    state: present
+  when: claude_check.rc != 0
+
+- name: 验证 Claude CLI 安装
+  command: claude --version
+  register: claude_install_version
+  changed_when: false
+  failed_when: false
+  when: claude_check.rc != 0
+
+- name: 显示 Claude CLI 安装结果
+  debug:
+    msg: "✓ Claude CLI 安装成功：{{ claude_install_version.stdout | default('') }}"
+  when:
+    - claude_check.rc != 0
+    - claude_install_version.rc == 0
+
+- name: 终止部署（Claude CLI 安装失败）
+  fail:
+    msg: "Claude CLI 安装失败，无法继续部署。请检查 npm 环境或手动安装：npm install -g @anthropic-ai/claude-code"
+  when:
+    - claude_check.rc != 0
+    - claude_install_version.rc != 0
+
+# --- ccline ---
+
+- name: 检查 ccline 是否已安装
+  shell: which ccline
+  register: ccline_check
+  changed_when: false
+  failed_when: false
+
+- name: 获取 ccline 版本
+  command: ccline --version
+  register: ccline_version
+  changed_when: false
+  when: ccline_check.rc == 0
+
+- name: 显示 ccline 状态
+  debug:
+    msg: "✓ ccline 已安装：{{ ccline_version.stdout | default('') }}"
+  when: ccline_check.rc == 0
+
+- name: 安装 ccline
+  npm:
+    name: "@cometix/ccline"
+    global: true
+    state: present
+  when: ccline_check.rc != 0
+
+- name: 验证 ccline 安装
+  command: ccline --version
+  register: ccline_install_version
+  changed_when: false
+  failed_when: false
+  when: ccline_check.rc != 0
+
+- name: 显示 ccline 安装结果
+  debug:
+    msg: "✓ ccline 安装成功：{{ ccline_install_version.stdout | default('') }}"
+  when:
+    - ccline_check.rc != 0
+    - ccline_install_version.rc == 0
+
+- name: 终止部署（ccline 安装失败）
+  fail:
+    msg: "ccline 安装失败，无法继续部署。请检查 npm 环境或手动安装：npm install -g @cometix/ccline"
+  when:
+    - ccline_check.rc != 0
+    - ccline_install_version.rc != 0
+
+# --- 汇总 ---
+
+- name: 显示 CLI 工具状态汇总
+  debug:
+    msg: |
+      ----------------------------------------
+      CLI 工具状态：
+      - Claude CLI：{{ claude_version.stdout | default(claude_install_version.stdout | default('已安装')) }}
+      - ccline：{{ ccline_version.stdout | default(ccline_install_version.stdout | default('已安装')) }}
+      ----------------------------------------

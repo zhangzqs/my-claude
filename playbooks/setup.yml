@@ -3,7 +3,7 @@
 # Claude Code 完整配置部署（编排层）
 #
 # 功能：
-# 1. 检查 Claude CLI 是否已安装
+# 1. 检查并安装 CLI 工具（Claude CLI、ccline）
 # 2. 自动安装 enabled_plugins 列表中的插件
 # 3. 同步配置到 ~/.claude/settings.json
 # 4. 验证部署结果
@@ -41,8 +41,13 @@
     plugins_to_install: "{{ settings.enabled_plugins | default([]) }}"
 
   tasks:
-    - name: ===== 阶段 1：检查 Claude CLI =====
-      include_tasks: tasks/check_cli.yml
+    - name: ===== 阶段 1：检查并安装 CLI 工具 =====
+      include_tasks:
+        file: tasks/install_cli.yml
+        apply:
+          tags:
+            - always
+            - install_cli
       tags:
         - always
         - install_cli
@@ -76,6 +81,7 @@
           部署摘要：
           - 目标主机：{{ inventory_hostname }}
           - Claude CLI：已安装
+          - ccline：已安装
           - 插件数量：{{ plugins_to_install | length }} 个
           - 配置文件：~/.claude/settings.json
           - 输出风格：{{ settings.outputStyle }}

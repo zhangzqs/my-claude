@@ -48,6 +48,14 @@
     recursive: true
   delegate_to: localhost
 
+- name: 同步 agents 目录
+  synchronize:
+    src: "{{ playbook_dir }}/../claude-assets/agents/"
+    dest: ~/.claude/agents/
+    delete: true
+    recursive: true
+  delegate_to: localhost
+
 - name: 拷贝 CLAUDE.md 文件
   copy:
     src: "{{ playbook_dir }}/../claude-assets/CLAUDE.md"

@@ -23,14 +23,12 @@ includeCoAuthoredBy: false
 permissions:
   allow:
     - Bash
-    - BashOutput
     - Edit
     - Glob
     - Grep
     - KillShell
     - NotebookEdit
     - Read
-    - SlashCommand
     - Task
     - TodoWrite
     - WebFetch
@@ -43,6 +41,7 @@ statusLine:
   command: ccline
   padding: 0
 outputStyle: "{{ settings.outputStyle }}"
+model: "{{ settings.model }}"
 alwaysThinkingEnabled: true
 {% if settings.enabled_plugins is defined and settings.enabled_plugins | length > 0 %}
 
