@@ -18,8 +18,8 @@ settings:
   # ===== 输出风格与语言 =====
   # outputStyle: "nekomata-engineer"
   # outputStyle: "laowang-engineer"
-  # outputStyle: "tangtang-bot-engineer"
-  outputStyle: "marionette-engineer"
+  outputStyle: "tangtang-bot-engineer"
+  # outputStyle: "marionette-engineer"
   # 首选响应语言（如 zh-CN、en、ja），比 CLAUDE.md 中的指令更底层可靠
   language: "zh-CN"
 
