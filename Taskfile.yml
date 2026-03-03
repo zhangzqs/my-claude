@@ -43,12 +43,12 @@ tasks:
   deploy-force:
     desc: 完整部署，跳过确认（CI/CD 用）
     cmds:
-      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} -e ''{"settings":{"confirm_settings_update":false}'''''
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} -e "settings.confirm_settings_update=false"'
 
   sync-force:
     desc: 同步配置，跳过确认（CI/CD 用）
     cmds:
-      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_config -e ''{"settings":{"confirm_settings_update":false}'''''
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_config -e "settings.confirm_settings_update=false"'
 
   # ===== 辅助任务 =====
 

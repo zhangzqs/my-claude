@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.13"]
 
     steps:
       # ========================================
@@ -49,6 +49,11 @@ jobs:
         run: |
           uv run ansible --version
           echo "✓ Ansible installed successfully"
+
+      - name: 📦 Install Taskfile
+        run: |
+          go install github.com/go-task/task/v3/cmd/task@latest
+          echo "✓ Taskfile installed successfully"
 
       - name: 📁 Create required directories
         run: |
@@ -117,10 +122,9 @@ jobs:
       # 导致后续读取文件的任务失败
       - name: 🚀 Deploy - sync Claude configuration
         run: |
-          # 运行 playbook，跳过插件安装、验证和 MCP 管理
-          # 通过在运行前修改 settings.yml 来禁用确认
-          sed -i 's/confirm_settings_update: true/confirm_settings_update: false/' inventory/default/group_vars/all/settings.yml
-          uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins,verify,manage_mcp_servers
+          # 使用 Taskfile 同步配置，跳过插件安装、验证和 MCP 管理
+          # 通过 -e 额外参数跳过不需要的 tags
+          uv run ansible-playbook playbooks/setup.yml --tags sync_config --skip-tags install_plugins,verify,manage_mcp_servers -e "settings.confirm_settings_update=false"
           echo "✓ Configuration synced successfully"
 
       - name: 🔍 Verify deployment
