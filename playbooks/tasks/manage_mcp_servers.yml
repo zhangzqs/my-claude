@@ -1,0 +1,27 @@
+---
+# playbooks/tasks/manage_mcp_servers.yml
+# 使用 claude mcp add-json 命令管理自定义 MCP 服务器
+
+- name: 显示阶段信息
+  debug:
+    msg: |
+      ========================================
+      阶段 2.5：管理自定义 MCP 服务器
+      ========================================
+
+- name: 检查是否配置了 custom_mcp_servers
+  debug:
+    msg: "custom_mcp_servers 数量：{{ custom_mcp_servers | default([]) | length }}"
+  when: custom_mcp_servers is defined
+
+- name: 处理每个自定义 MCP 服务器
+  include_tasks: manage_single_mcp_server.yml
+  loop: "{{ custom_mcp_servers | default([]) }}"
+  loop_control:
+    loop_var: mcp_server
+  when: custom_mcp_servers is defined and custom_mcp_servers | length > 0
+
+- name: 显示 MCP 服务器管理完成信息
+  debug:
+    msg: "✓ MCP 服务器管理完成"
+  when: custom_mcp_servers is defined
