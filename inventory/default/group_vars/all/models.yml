@@ -1,0 +1,15 @@
+model_configs:
+  volces:
+    baseURL: https://ark.cn-beijing.volces.com/api/coding
+    opus_model: "doubao-seed-2.0-code"
+    sonnet_model: "doubao-seed-2.0-code"
+    haiku_model: "doubao-seed-2.0-code"
+    claude_code_subagent: "doubao-seed-2.0-code"
+  qiniu_claude:
+    baseURL: https://openai.qiniu.com
+    opus_model: "claude-4.6-opus"
+    sonnet_model: "claude-4.5-sonnet"
+    haiku_model: "claude-4.6-haiku"
+    claude_code_subagent: "claude-4.5-sonnet"
+
+use_model: "qiniu_claude"

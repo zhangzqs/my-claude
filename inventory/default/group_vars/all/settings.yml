@@ -7,11 +7,11 @@ settings:
   model: "opus"
   alwaysThinkingEnabled: true
   env:
-    ANTHROPIC_BASE_URL: https://ark.cn-beijing.volces.com/api/coding
-    ANTHROPIC_DEFAULT_OPUS_MODEL: "doubao-seed-2.0-code"
-    ANTHROPIC_DEFAULT_SONNET_MODEL: "doubao-seed-2.0-code"
-    ANTHROPIC_DEFAULT_HAIKU_MODEL: "doubao-seed-2.0-code"
-    CLAUDE_CODE_SUBAGENT_MODEL: "doubao-seed-2.0-code"
+    ANTHROPIC_BASE_URL: "{{ model_configs[use_model].baseURL }}"
+    ANTHROPIC_DEFAULT_OPUS_MODEL: "{{ model_configs[use_model].opus_model }}"
+    ANTHROPIC_DEFAULT_SONNET_MODEL: "{{ model_configs[use_model].sonnet_model }}"
+    ANTHROPIC_DEFAULT_HAIKU_MODEL: "{{ model_configs[use_model].haiku_model }}"
+    CLAUDE_CODE_SUBAGENT_MODEL: "{{ model_configs[use_model].claude_code_subagent }}"
     # 隐私与遥测控制
     DISABLE_TELEMETRY: "1"
     DISABLE_ERROR_REPORTING: "1"
@@ -48,7 +48,7 @@ settings:
 
   # ===== 会话与存储 =====
   # 聊天记录保留天数（0 = 永不清理）
-  cleanupPeriodDays: 30
+  cleanupPeriodDays: 60
 
   # ===== Hooks 钩子 =====
   # 支持的钩子类型：SessionStart / SessionEnd / PreToolUse / PostToolUse /

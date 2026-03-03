@@ -62,12 +62,20 @@
         - install_plugins
 
     - name: ===== 阶段 3：同步配置 =====
-      include_tasks: tasks/sync_config_tasks.yml
+      include_tasks:
+        file: tasks/sync_config_tasks.yml
+        apply:
+          tags:
+            - sync_config
       tags:
         - sync_config
 
     - name: ===== 阶段 4：验证部署 =====
-      include_tasks: tasks/verify_deployment.yml
+      include_tasks:
+        file: tasks/verify_deployment.yml
+        apply:
+          tags:
+            - verify
       tags:
         - verify
 
