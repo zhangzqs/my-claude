@@ -1,14 +1,27 @@
 ---
 # 管理单个 MCP 服务器
 
-- name: "构建 MCP 配置 JSON 用于 {{ mcp_server.name }}"
+- name: "确定 MCP 服务器类型"
+  set_fact:
+    mcp_server_type: "{{ mcp_server.type | default('stdio') }}"
+    mcp_scope: "{{ mcp_scope | default('local') }}"
+
+- name: "构建 stdio 类型 MCP 配置"
   set_fact:
     mcp_config_json:
-      type: "stdio"
+      type: "{{ mcp_server_type }}"
       command: "{{ mcp_server.command }}"
-      args: "{{ mcp_server.args }}"
+      args: "{{ mcp_server.args | default([]) }}"
       env: "{{ mcp_server.env | default({}) }}"
-    mcp_scope: "{{ mcp_scope | default('local') }}"
+  when: mcp_server_type == 'stdio'
+
+- name: "构建 http 类型 MCP 配置"
+  set_fact:
+    mcp_config_json:
+      type: "{{ mcp_server_type }}"
+      url: "{{ mcp_server.url }}"
+      headers: "{{ mcp_server.headers | default({}) }}"
+  when: mcp_server_type == 'http' or mcp_server_type == 'sse'
 
 - name: "尝试添加 {{ mcp_server.name }}（scope: {{ mcp_scope }}）"
   shell: "claude mcp add-json --scope {{ mcp_scope }} {{ mcp_server.name }} '{{ mcp_config_json | to_json }}'"
@@ -18,7 +31,7 @@
 
 - name: "添加成功，显示结果"
   debug:
-    msg: "✓ 已添加 MCP 服务器：{{ mcp_server.name }} (scope: {{ mcp_scope }})"
+    msg: "✓ 已添加 MCP 服务器：{{ mcp_server.name }} (scope: {{ mcp_scope }}, type: {{ mcp_server_type }})"
   when: add_mcp_result.rc == 0
 
 - name: "如果添加失败，删除后重新添加 {{ mcp_server.name }}"
@@ -34,5 +47,5 @@
 
     - name: "显示更新结果"
       debug:
-        msg: "✓ 已更新 MCP 服务器：{{ mcp_server.name }} (scope: {{ mcp_scope }})"
+        msg: "✓ 已更新 MCP 服务器：{{ mcp_server.name }} (scope: {{ mcp_scope }}, type: {{ mcp_server_type }})"
   when: add_mcp_result.rc != 0

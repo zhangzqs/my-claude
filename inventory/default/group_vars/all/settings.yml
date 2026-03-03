@@ -87,24 +87,37 @@ settings:
 #   - project: 项目级别，提交到版本控制
 #   - user: 用户级别，所有项目可用
 mcp_scope: "user"
-# 格式：
+# 格式（stdio 类型）：
 #   - name: 服务器名称（唯一标识）
+#     type: "stdio"（可选，默认 stdio）
 #     command: 启动命令（如 python、node、npx）
 #     args: 命令参数（数组格式）
 #     env: 环境变量（可选，支持从 secrets.yml 引用）
+# 格式（HTTP 类型）：
+#   - name: 服务器名称（唯一标识）
+#     type: "http"
+#     url: 服务器 URL
+#     headers: HTTP 请求头（可选，用于认证）
+#       Authorization: "Bearer your-token"
+#       X-API-Key: "your-api-key"
 custom_mcp_servers:
   - name: "mcp-server-fetch"
-    command: "npx"
+    command: "uvx"
     args: ["mcp-server-fetch"]
 # 示例配置：
 # custom_mcp_servers:
+#   # stdio 类型示例
 #   - name: "custom-python-mcp"
+#     type: "stdio"
 #     command: "python"
 #     args:
 #       - "/path/to/custom-mcp/server.py"
 #     env:
 #       API_KEY: "{{ secrets.custom_mcp_api_key }}"
-#   - name: "local-node-mcp"
-#     command: "node"
-#     args:
+#   # HTTP 类型示例
+#   - name: "remote-api"
+#     type: "http"
+#     url: "https://mcp.example.com/api"
+#     headers:
+#       Authorization: "Bearer {{ secrets.remote_mcp_api_key }}"
 #       - "/home/user/mcp-server/index.js"
