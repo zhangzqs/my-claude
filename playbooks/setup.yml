@@ -5,8 +5,9 @@
 # 功能：
 # 1. 检查并安装 CLI 工具（Claude CLI、ccline）
 # 2. 自动安装 enabled_plugins 列表中的插件
-# 3. 同步配置到 ~/.claude/settings.json
-# 4. 验证部署结果
+# 3. 同步 claude.json 配置到 ~/.claude.json（MCP 服务器）
+# 4. 同步配置到 ~/.claude/settings.json
+# 5. 验证部署结果
 #
 # 使用方法：
 #   # 单机部署（默认）
@@ -21,11 +22,13 @@
 # 跳过特定阶段：
 #   uv run ansible-playbook playbooks/setup.yml --skip-tags install_cli
 #   uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins
+#   uv run ansible-playbook playbooks/setup.yml --skip-tags sync_claude_json
 #   uv run ansible-playbook playbooks/setup.yml --skip-tags sync_config
 #   uv run ansible-playbook playbooks/setup.yml --skip-tags verify
 #
 # 仅执行特定阶段：
 #   uv run ansible-playbook playbooks/setup.yml --tags install_plugins
+#   uv run ansible-playbook playbooks/setup.yml --tags sync_claude_json
 #   uv run ansible-playbook playbooks/setup.yml --tags sync_config
 
 - name: Claude Code 完整配置部署
@@ -36,6 +39,7 @@
     - "{{ playbook_dir }}/../inventory/default/group_vars/all/secrets.yml"
     - "{{ playbook_dir }}/../inventory/default/group_vars/all/models.yml"
     - "{{ playbook_dir }}/../inventory/default/group_vars/all/settings.yml"
+    - "{{ playbook_dir }}/../inventory/default/group_vars/all/mcp_servers.yml"
 
   vars:
     # 从 settings.yml 读取配置
@@ -62,14 +66,14 @@
       tags:
         - install_plugins
 
-    - name: ===== 阶段 2.5：管理自定义 MCP 服务器 =====
+    - name: ===== 阶段 2.5：同步 claude.json =====
       include_tasks:
-        file: tasks/manage_mcp_servers.yml
+        file: tasks/sync_claude_json_tasks.yml
         apply:
           tags:
-            - manage_mcp_servers
+            - sync_claude_json
       tags:
-        - manage_mcp_servers
+        - sync_claude_json
 
     - name: ===== 阶段 3：同步配置 =====
       include_tasks:
@@ -102,7 +106,7 @@
           - ccline：已安装
           - 插件数量：{{ plugins_to_install | length }} 个
           - 配置文件：~/.claude/settings.json
-          - MCP 服务器：{% if custom_mcp_servers is defined and custom_mcp_servers | length > 0 %}{{ custom_mcp_servers | length }} 个自定义服务器{% else %}(未配置){% endif %}
+          - MCP 服务器：{% if claude_json.mcpServers is defined and claude_json.mcpServers | length > 0 %}{{ claude_json.mcpServers | length }} 个（deep merge 模式）{% else %}(未配置){% endif %}
           - 输出风格：{{ settings.outputStyle }}
 
           已启用的插件：
