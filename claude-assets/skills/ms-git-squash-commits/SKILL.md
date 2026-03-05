@@ -1,16 +1,17 @@
 ---
+name: ms-git-squash-commits
 description: PR 前将开发分支的多个 commit 压缩成一个，自动同步上游代码并生成 Conventional Commits 风格的提交信息（可选 emoji）
 allowed-tools: Bash(git fetch, git checkout, git merge, git reset, git commit, git branch, git rev-parse, git log, git status, git diff, git remote, git merge-base), Read(**), Write(.git/COMMIT_EDITMSG)
-argument-hint: [--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [--no-verify] [--emoji] [--scope <scope>] [--type <type>]
-examples:
-  - /git-squash-commits
-  - /git-squash-commits --emoji
-  - /git-squash-commits --scope ui --type feat
-  - /git-squash-commits --no-sync
-  - /git-squash-commits --backup
+argument-hint: "[--remote <remote>] [--branch <branch>] [--no-sync] [--backup] [--no-verify] [--emoji] [--scope <scope>] [--type <type>]"
+# examples:
+#   - /ms-git-squash-commits
+#   - /ms-git-squash-commits --emoji
+#   - /ms-git-squash-commits --scope ui --type feat
+#   - /ms-git-squash-commits --no-sync
+#   - /ms-git-squash-commits --backup
 ---
 
-# Claude Command: Squash Commits (Git-only)
+# Claude Skill: Squash Commits (Git-only)
 
 该命令用于**在提交 PR 前将开发分支的多个 commit 压缩成一个干净的 commit**，通过 **Git**：
 
@@ -26,13 +27,13 @@ examples:
 ## Usage
 
 ```bash
-/git-squash-commits
-/git-squash-commits --emoji
-/git-squash-commits --scope ui --type feat
-/git-squash-commits --no-sync
-/git-squash-commits --backup
-/git-squash-commits --remote upstream --branch develop
-/git-squash-commits --no-verify --emoji
+/ms-git-squash-commits
+/ms-git-squash-commits --emoji
+/ms-git-squash-commits --scope ui --type feat
+/ms-git-squash-commits --no-sync
+/ms-git-squash-commits --backup
+/ms-git-squash-commits --remote upstream --branch develop
+/ms-git-squash-commits --no-verify --emoji
 ```
 
 ### Options
@@ -50,7 +51,7 @@ examples:
 
 ---
 
-## What This Command Does
+## What This Skill Does
 
 1. **仓库/分支校验**
    - 通过 `git rev-parse --is-inside-work-tree` 判断是否位于 Git 仓库。
@@ -258,100 +259,3 @@ feat(ui): implement user authentication flow
   - 在 detached HEAD、rebase/merge 冲突状态下会先提示处理/确认再继续。
   - 若已经是单个提交，命令会询问用户是否继续（可能不需要压缩）。
 - **可审可控**：如开启 `confirm: true`，每个实际 `git reset`/`git commit` 步骤都会进行二次确认。
-
----
-
-## Edge Cases & Safety Guardrails
-
-| 场景                       | 检测方式                                      | 处理策略                           |
-| -------------------------- | --------------------------------------------- | ---------------------------------- |
-| **不在 Git 仓库**          | `git rev-parse --is-inside-work-tree`         | 报错退出，提示用户初始化仓库       |
-| **工作区有未提交改动**     | `git status --porcelain`                      | 报错退出，提示用户先提交或暂存     |
-| **处于 detached HEAD**     | `git symbolic-ref -q HEAD`                    | 警告用户，询问是否继续             |
-| **处于 rebase/merge 冲突** | 检查 `.git/MERGE_HEAD` 或 `.git/rebase-merge` | 报错退出，提示先解决冲突           |
-| **上游分支不存在**         | `git rev-parse --verify <remote>/<branch>`    | 报错退出，列出可用分支             |
-| **当前分支没有新提交**     | `git log <remote>/<branch>..HEAD`             | 提示用户，退出命令                 |
-| **已经是单个提交**         | 提交数量 = 1                                  | 询问用户是否继续（可能不需要压缩） |
-| **同步时产生冲突**         | `git merge` 返回非 0                          | 尝试自动解决，失败则报告冲突并退出 |
-| **提交钩子失败**           | `git commit` 返回非 0                         | 保留暂存区状态，输出错误信息       |
-| **用户中断操作**           | Ctrl+C                                        | 保留当前状态，输出中断提示         |
-
----
-
-## Safety Rollback
-
-若压缩操作失误，可通过以下方式回滚：
-
-1. **若创建了备份分支**：
-
-   ```bash
-   git reset --hard <备份分支>
-   ```
-
-2. **若未创建备份分支，但压缩提交尚未推送**：
-
-   ```bash
-   # 查找原始提交 hash（通过 reflog）
-   git reflog
-   # 恢复到原始提交
-   git reset --hard <原始提交 hash>
-   ```
-
-3. **若已推送到远程**：
-
-   ```bash
-   # 方式1：使用 revert（推荐，不改写历史）
-   git revert <压缩提交 hash>
-
-   # 方式2：强制回退（需要 force push，慎用）
-   git reset --hard <原始提交 hash>
-   git push --force
-   ```
-
----
-
-## FAQ
-
-### Q1: 为什么要压缩提交？
-
-**A**: 保持 PR 历史干净整洁，便于审阅者理解改动意图。多个零碎的提交（如"fix typo"、"format code"）会干扰审阅流程，压缩成一个有意义的提交可以提高代码审阅效率。
-
-### Q2: 什么时候不应该压缩提交？
-
-**A**:
-
-- 若原提交历史对审阅有价值（如详细的实现步骤、重要的 milestone）。
-- 若提交已经推送到远程且有其他人基于此分支开发（会导致历史冲突）。
-- 若提交已经合并到主分支（不应改写已合并的历史）。
-
-### Q3: 压缩后如何保留原始提交信息？
-
-**A**: 命令会自动在提交消息体中列出原始提交标题，作为历史记录。你也可以手动编辑 `.git/COMMIT_EDITMSG` 添加更多细节。
-
-### Q4: 压缩后可以继续开发吗？
-
-**A**: 可以。压缩后的提交就像普通提交一样，你可以继续在此基础上开发新功能、修复 bug 等。
-
-### Q5: 压缩后如何推送到远程？
-
-**A**:
-
-- 若分支**尚未推送**：直接 `git push -u origin <分支名>`。
-- 若分支**已推送**：需要 **force push**（会改写远程历史）：
-
-  ```bash
-  git push --force-with-lease
-  ```
-
-  > 注意：force push 会影响其他基于此分支开发的人，使用前请确认无他人依赖此分支。
-
-### Q6: 如何恢复压缩前的提交？
-
-**A**:
-
-- 若创建了备份分支：`git reset --hard <备份分支>`。
-- 若未创建备份：通过 `git reflog` 查找原始提交 hash，然后 `git reset --hard <hash>`。
-
----
-
-**最后更新时间**: 2026-02-26T00:00:00+00:00

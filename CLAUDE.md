@@ -59,7 +59,7 @@
 my-claude/
 ├── claude-assets/        # Claude 配置资源（源文件）
 │   ├── agents/          # 自定义智能体定义
-│   ├── commands/        # 自定义命令定义
+│   ├── skills/        # 自定义命令定义
 │   ├── output-styles/   # 输出风格定义
 │   ├── CLAUDE.md        # 全局指令文档
 │   └── settings.yml.j2  # settings.json 的 Jinja2 模板
@@ -82,7 +82,7 @@ my-claude/
 1. 在 `inventory/default/group_vars/all/settings.yml` 中声明配置变量
 2. Ansible 读取变量并渲染 `claude-assets/settings.yml.j2` 模板
 3. 将渲染结果转换为 JSON 格式输出到 `~/.claude/settings.json`
-4. 使用 rsync 同步 `commands`、`output-styles`、`CLAUDE.md` 等资源文件到 `~/.claude/`
+4. 使用 rsync 同步 `skills`、`output-styles`、`CLAUDE.md` 等资源文件到 `~/.claude/`
 
 ---
 
@@ -91,7 +91,7 @@ my-claude/
 | 模块路径                       | 职责                                                      | 关键文件                                                 |
 | ------------------------------ | --------------------------------------------------------- | -------------------------------------------------------- |
 | `claude-assets/`               | Claude 配置资源仓库，包含模板、命令、智能体、输出风格定义 | `settings.yml.j2`, `CLAUDE.md`                           |
-| `claude-assets/commands/`      | 自定义命令定义（Markdown 格式）                           | `git-commit.md`, `git-sync-branch.md`, `init-project.md` |
+| `claude-assets/skills/`      | 自定义命令定义（Markdown 格式）                           | `git-commit.md`, `git-sync-branch.md`, `init-project.md` |
 | `claude-assets/agents/`        | 自定义智能体定义（子 Agent）                              | `init-architect.md`, `get-current-datetime.md`           |
 | `claude-assets/output-styles/` | 个性化输出风格定义（人格化）                              | `nekomata-engineer.md`, `laowang-engineer.md` 等         |
 | `inventory/`                   | Ansible 清单与变量管理                                    | `inventory.yml`, `settings.yml`, `secrets.yml`           |
@@ -156,7 +156,7 @@ uv run ansible-playbook playbooks/setup.yml --check --diff
 cat ~/.claude/settings.json | jq .
 
 # 检查自定义命令是否同步
-ls -la ~/.claude/commands/
+ls -la ~/.claude/skills/
 
 # 检查输出风格是否同步
 ls -la ~/.claude/output-styles/
@@ -267,7 +267,7 @@ settings:
 
 ### 添加新的自定义命令
 
-1. 在 `claude-assets/commands/mc/` 创建新的 `.md` 文件
+1. 在 `claude-assets/skills/mc/` 创建新的 `.md` 文件
 2. 按照 Claude 命令规范编写 front-matter 和指令内容
 3. 运行同步命令：`ansible-playbook playbooks/setup.yml --tags sync_config`
 4. 使用命令：`/your-command-name`
@@ -280,7 +280,7 @@ allowed-tools: 允许使用的工具列表（如 Read(**), Bash(**)）
 argument-hint: 参数提示（如 [--option] <required>）
 ```
 
-**示例**：参考现有命令 `claude-assets/commands/mc/git-commit.md` 或 `git-sync-branch.md`
+**示例**：参考现有命令 `claude-assets/skills/mc/git-commit.md` 或 `git-sync-branch.md`
 
 ### 常见问题排查
 
@@ -316,7 +316,7 @@ uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 
 1. 检查目标目录权限：`ls -la ~/.claude/`
 2. 查看 Ansible 日志：`tail -f tmps/ansible.log`
-3. 手动测试 rsync：`rsync -av claude-assets/commands/ ~/.claude/commands/`
+3. 手动测试 rsync：`rsync -av claude-assets/skills/ ~/.claude/skills/`
 
 #### 4. 插件安装失败
 

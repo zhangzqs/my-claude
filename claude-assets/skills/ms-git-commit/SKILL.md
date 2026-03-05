@@ -1,19 +1,20 @@
 ---
+name: ms-git-commit
 description: 仅用 Git 分析改动并自动生成 conventional commit 信息（可选 emoji）；必要时建议拆分提交，默认运行本地 Git 钩子（可 --no-verify 跳过）；智能推断是否推送到远程
 allowed-tools: Read(**), Exec(git status, git diff, git add, git restore --staged, git commit, git push, git pull, git rev-parse, git config), Write(.git/COMMIT_EDITMSG)
-argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <scope>] [--type <type>] [--push] [--no-push]
+argument-hint: "[--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <scope>] [--type <type>] [--push] [--no-push]"
 # examples:
-#   - /git-commit                           # 分析改动，生成提交，智能推断是否推送
-#   - /git-commit --all                     # 暂存所有改动并提交
-#   - /git-commit --push                    # 强制推送（即使是新分支）
-#   - /git-commit --no-push                 # 仅提交，不推送
-#   - /git-commit --no-verify               # 跳过 Git 钩子检查
-#   - /git-commit --emoji                   # 在提交信息中包含 emoji
-#   - /git-commit --scope ui --type feat    # 指定作用域和类型
-#   - /git-commit --amend --signoff         # 修补上次提交并签名
+#   - /ms-git-commit # 分析改动，生成提交，智能推断是否推送
+#   - /ms-git-commit --all # 暂存所有改动并提交
+#   - /ms-git-commit --push # 强制推送（即使是新分支）
+#   - /ms-git-commit --no-push # 仅提交，不推送
+#   - /ms-git-commit --no-verify # 跳过 Git 钩子检查
+#   - /ms-git-commit --emoji # 在提交信息中包含 emoji
+#   - /ms-git-commit --scope ui --type feat # 指定作用域和类型
+#   - /ms-git-commit --amend --signoff # 修补上次提交并签名
 ---
 
-# Claude Command: Commit (Git-only)
+# Claude Skill: Commit (Git-only)
 
 该命令在**不依赖任何包管理器/构建工具**的前提下，仅通过 **Git**：
 
@@ -28,14 +29,14 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 ## Usage
 
 ```bash
-/git-commit
-/git-commit --push
-/git-commit --no-push
-/git-commit --no-verify
-/git-commit --emoji
-/git-commit --all --signoff
-/git-commit --amend
-/git-commit --scope ui --type feat --emoji
+/ms-git-commit
+/ms-git-commit --push
+/ms-git-commit --no-push
+/ms-git-commit --no-verify
+/ms-git-commit --emoji
+/ms-git-commit --all --signoff
+/ms-git-commit --amend
+/ms-git-commit --scope ui --type feat --emoji
 ```
 
 ### Options
@@ -54,7 +55,7 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 
 ---
 
-## What This Command Does
+## What This Skill Does
 
 1. **仓库/分支校验**
    - 通过 `git rev-parse --is-inside-work-tree` 判断是否位于 Git 仓库。
@@ -106,7 +107,7 @@ argument-hint: [--no-verify] [--all] [--amend] [--signoff] [--emoji] [--scope <s
 
 - **Atomic commits**：一次提交只做一件事，便于回溯与审阅。
 - **先分组再提交**：按目录/模块/功能点拆分。
-- **清晰主题**：首行 ≤ 72 字符，祈使语气（如 “add… / fix…”）。
+- **清晰主题**：首行 ≤ 72 字符，祈使语气（如 "add… / fix…"）。
 - **正文含上下文**：说明动机、方案、影响范围、风险与后续工作。
 - **遵循 Conventional Commits**：`<type>(<scope>): <subject>`。
 

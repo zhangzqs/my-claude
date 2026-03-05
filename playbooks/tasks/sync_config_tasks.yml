@@ -143,10 +143,10 @@
     recursive: true
   delegate_to: localhost
 
-- name: 同步 commands 目录
+- name: 同步 skills 目录
   synchronize:
-    src: "{{ playbook_dir }}/../claude-assets/commands/"
-    dest: ~/.claude/commands/
+    src: "{{ playbook_dir }}/../claude-assets/skills/"
+    dest: ~/.claude/skills/
     delete: true
     recursive: true
   delegate_to: localhost

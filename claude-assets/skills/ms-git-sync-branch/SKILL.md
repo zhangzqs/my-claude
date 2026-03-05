@@ -1,16 +1,17 @@
 ---
+name: ms-git-sync-branch
 description: 从上游主分支拉取最新代码，同步到本地主分支，再合并/变基到当前工作分支；遇冲突自动解决
 allowed-tools: Bash(git fetch, git checkout, git pull, git merge, git rebase, git branch, git rev-parse, git log, git status, git diff, git remote, git stash, git stash pop, git add, git rebase --continue, git merge --continue, git symbolic-ref), Read(**), Edit(**)
-argument-hint: [--remote <remote>] [--branch <branch>] [--strategy merge|rebase] [--stash] [--no-resolve]
+argument-hint: "[--remote <remote>] [--branch <branch>] [--strategy merge|rebase] [--stash] [--no-resolve]"
 # examples:
-#   - /sync-branch                                    # 全自动：检测远程、主分支、合并策略
-#   - /sync-branch --remote origin --branch main      # 指定从 origin/main 同步
-#   - /sync-branch --strategy rebase                  # 使用 rebase 而非 merge
-#   - /sync-branch --stash                            # 自动暂存未提交改动后再同步
-#   - /sync-branch --no-resolve                       # 遇冲突时暂停，不自动解决
+#   - /ms-git-sync-branch                                    # 全自动：检测远程、主分支、合并策略
+#   - /ms-git-sync-branch --remote origin --branch main      # 指定从 origin/main 同步
+#   - /ms-git-sync-branch --strategy rebase                  # 使用 rebase 而非 merge
+#   - /ms-git-sync-branch --stash                            # 自动暂存未提交改动后再同步
+#   - /ms-git-sync-branch --no-resolve                       # 遇冲突时暂停，不自动解决
 ---
 
-# Claude Command: Sync Branch
+# Claude Skill: Sync Branch
 
 从上游主分支拉取最新代码 → 同步到本地主分支 → 合并/变基到当前工作分支。
 遇到合并冲突时，自动分析并尝试解决。
@@ -20,11 +21,11 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--strategy merge|rebase]
 ## Usage
 
 ```bash
-/sync-branch
-/sync-branch --remote origin --branch main
-/sync-branch --strategy rebase
-/sync-branch --stash
-/sync-branch --no-resolve
+/ms-git-sync-branch
+/ms-git-sync-branch --remote origin --branch main
+/ms-git-sync-branch --strategy rebase
+/ms-git-sync-branch --stash
+/ms-git-sync-branch --no-resolve
 ```
 
 ### Options
@@ -37,7 +38,7 @@ argument-hint: [--remote <remote>] [--branch <branch>] [--strategy merge|rebase]
 
 ---
 
-## What This Command Does
+## What This Skill Does
 
 ### 1. 环境校验（Pre-flight Checks）
 

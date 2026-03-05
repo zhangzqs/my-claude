@@ -56,7 +56,7 @@ uv run ansible-playbook playbooks/setup.yml
 **部署完成后**:
 
 - Claude 配置已同步到 `~/.claude/settings.json`
-- 自定义命令已安装到 `~/.claude/commands/`
+- 自定义命令已安装到 `~/.claude/skills/`
 - 输出风格已同步到 `~/.claude/output-styles/`
 
 ---
@@ -148,7 +148,7 @@ uv run ansible-playbook playbooks/sync_claude_config.yml  # 同步配置
 
 ### 添加自定义命令
 
-1. 在 `claude-assets/commands/mc/` 创建 `my-command.md`
+1. 在 `claude-assets/skills/mc/` 创建 `my-command.md`
 2. 编写 front-matter 和指令内容:
 
 ```markdown
