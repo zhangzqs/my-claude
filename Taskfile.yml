@@ -33,22 +33,27 @@ tasks:
     cmds:
       - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags install_plugins'
 
-  manage-mcp:
-    desc: 仅管理自定义 MCP 服务器
+  sync-claude-json:
+    desc: 仅同步 claude.json（deep merge 模式）
     cmds:
-      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags manage_mcp_servers'
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_claude_json'
+
+  check-claude-json:
+    desc: 预览 claude.json 变更（不执行）
+    cmds:
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_claude_json --check --diff'
 
   # ===== CI/CD 任务（跳过确认） =====
 
   deploy-force:
     desc: 完整部署，跳过确认（CI/CD 用）
     cmds:
-      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} -e "settings.confirm_settings_update=false"'
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} -e "{settings: {confirm_settings_update: false}, claude_json: {confirm_claude_json_update: false}}"'
 
   sync-force:
     desc: 同步配置，跳过确认（CI/CD 用）
     cmds:
-      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_config -e "settings.confirm_settings_update=false"'
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_config,sync_claude_json -e "{settings: {confirm_settings_update: false}, claude_json: {confirm_claude_json_update: false}}"'
 
   # ===== 辅助任务 =====
 
@@ -70,5 +75,16 @@ tasks:
           cat ~/.claude/settings.json
         else
           echo "~/.claude/settings.json not found"
+        fi
+    silent: true
+
+  view-claude-json:
+    desc: 查看当前 ~/.claude.json
+    cmds:
+      - |
+        if [ -f ~/.claude.json ]; then
+          cat ~/.claude.json | jq .
+        else
+          echo "~/.claude.json not found"
         fi
     silent: true
