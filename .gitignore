@@ -1,6 +1,6 @@
 tmps
 .playwright-mcp
-.claude
+.claude/settings.local.json
 .venv
 
 # 敏感配置文件

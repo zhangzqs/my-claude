@@ -61,6 +61,81 @@ uv run ansible-playbook playbooks/setup.yml
 
 ---
 
+## 👥 多人使用流程
+
+如果你是从上游仓库 Fork 出来的用户，可以按照以下流程配置和使用。
+
+### 初始化流程（以下游用户 alice 为例）
+
+```bash
+# 1. Fork 上游仓库（GitHub 操作）
+# 访问 https://github.com/zhangzqs/my-claude，点击右上角的 Fork 按钮
+
+# 2. Clone 你的 fork 到本地
+git clone git@github.com:alice/my-claude.git
+cd my-claude
+
+# 3. 添加上游仓库（用于后续同步更新）
+git remote add upstream git@github.com:zhangzqs/my-claude.git
+
+# 4. 创建你的个人分支
+git checkout -b alice
+
+# 5. 创建你的 inventory 目录（复制 default 作为模板）
+cp -r inventory/default inventory/alice
+
+# 6. 修改 ansible.cfg 指向你的 inventory
+# 编辑第 28 行，将 inventory 路径改为：
+# inventory = $PWD/inventory/alice/inventory.yml
+
+# 7. 配置你的个人设置
+# 编辑 inventory/alice/group_vars/all/settings.yml
+# 编辑 inventory/alice/group_vars/all/secrets.yml（复制 secrets.yml.example）
+
+# 8. 提交你的个人配置
+git add ansible.cfg inventory/alice/
+git commit -m "chore: 添加 alice 个人配置"
+git push -u origin alice
+```
+
+### 从上游更新流程
+
+```bash
+# 1. 切换到 master 分支
+git checkout master
+
+# 2. 从上游仓库拉取最新代码
+git fetch upstream
+git merge upstream/master
+
+# 3. 切换回你的个人分支
+git checkout alice
+
+# 4. 将 master 分支合并到你的分支
+git merge master
+
+# 5. 如果 ansible.cfg 有冲突，解决冲突（保留你的 inventory 路径配置）
+
+# 6. 检查配置变更，根据需要调整 inventory/alice/ 下的配置文件
+
+# 7. 提交并推送更新
+git add .
+git commit -m "chore: 同步上游更新"
+git push
+```
+
+#### 使用项目级 skill 一键更新（推荐）
+
+在 my-claude 项目目录下，直接使用项目内置 skill：
+
+```bash
+/my-claude-sync-upstream
+```
+
+这个命令会自动完成上述所有步骤，包括配置迁移。
+
+---
+
 ## 📚 文档
 
 - **[完整文档](CLAUDE.md)**：项目架构、开发指南、API 参考
