@@ -124,8 +124,8 @@ jobs:
         run: |
           # 直接修改 settings.yml 禁用确认
           sed -i 's/confirm_settings_update: true/confirm_settings_update: false/' inventory/default/group_vars/all/settings.yml
-          # 运行 playbook，跳过插件安装、验证和 MCP 管理
-          uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins,verify,manage_mcp_servers
+          # 运行 playbook，跳过插件安装、验证和 MCP JSON 生成
+          uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins,verify,sync_claude_json
           echo "✓ Configuration synced successfully"
 
       - name: 🔍 Verify deployment
