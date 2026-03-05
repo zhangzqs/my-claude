@@ -1,0 +1,18 @@
+# claude.yml.j2
+# 用于渲染 claude.json patch 的 YAML 模板
+# 渲染结果会与现有 ~/.claude.json 做递归深度合并（jq deep merge）
+# 所有可配置变量均从 inventory/default/group_vars/all/ 传入
+
+# ===== 固定配置 =====
+hasCompletedOnboarding: true
+
+# ===== MCP 服务器配置 =====
+{% if claude_json.mcpServers is defined and claude_json.mcpServers %}
+mcpServers:
+{% for name, config in claude_json.mcpServers.items() %}
+  {{ name }}:
+{% for key, value in config.items() %}
+    {{ key }}: {{ value | to_json }}
+{% endfor %}
+{% endfor %}
+{% endif %}
