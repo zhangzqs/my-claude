@@ -30,6 +30,8 @@
 - **正确的变量传递**：使用顶层变量（如 `skip_confirm=true`）避免嵌套变量覆盖问题
 - **Skills 目录结构**：自定义 skills 位于 `claude-assets/skills/`，每个 skill 在独立子目录中，文件名为 `SKILL.md`
 - **Skill 命名规范**：front-matter 必须包含 `name:` 字段，部分 skills 使用 `ms-` 前缀（如 ms-git-commit）
+- **项目级 Skills**：项目根目录的 `.claude/skills/` 用于存放仅在当前项目中使用的 skills，不会被同步到 `~/.claude/`
+- **.gitignore 注意**：仅忽略 `.claude/settings.local.json`，不要忽略整个 `.claude/` 目录（项目级 skills 存放在这里）
 
 ### ⚠️ MCP 配置重要提示
 
@@ -416,6 +418,7 @@ uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 
 - `/ms-git-commit [--emoji] [--no-verify]`：智能分析 Git 改动并生成 Conventional Commits 风格的提交信息
 - `/init-project <项目摘要>`：初始化项目 AI 上下文，生成根级与模块级 CLAUDE.md 索引
+- `/my-claude-sync-upstream`：专门用于 my-claude 项目从上游仓库一键同步更新，自动检测并添加 upstream remote，处理配置迁移
 
 ### 自定义智能体
 
