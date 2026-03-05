@@ -12,3 +12,4 @@ inventory/**/secrets.yaml
 # 本地环境配置
 .env
 .env.local
+docs/plans
