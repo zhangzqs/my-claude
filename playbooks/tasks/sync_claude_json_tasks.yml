@@ -1,0 +1,127 @@
+---
+# playbooks/tasks/sync_claude_json_tasks.yml
+# 将 claude.yml.j2 渲染后增量合并到 ~/.claude.json（jq deep merge）
+
+- name: 显示阶段信息
+  debug:
+    msg: |
+      ========================================
+      阶段 2.5：同步 claude.json（deep merge）
+      ========================================
+
+- name: 创建备份目录 tmps/backup
+  file:
+    path: "{{ playbook_dir }}/../tmps/backup"
+    state: directory
+    mode: "0755"
+
+- name: 渲染 claude.yml.j2 模板
+  template:
+    src: "{{ playbook_dir }}/../claude-assets/claude.yml.j2"
+    dest: /tmp/claude_json_patch.yml
+    mode: "0644"
+
+- name: 读取渲染后的 YAML
+  slurp:
+    src: /tmp/claude_json_patch.yml
+  register: rendered_claude_json
+
+- name: 生成 patch JSON（临时文件）
+  copy:
+    content: "{{ rendered_claude_json.content | b64decode | from_yaml | to_nice_json }}"
+    dest: /tmp/claude_json_patch.json
+    mode: "0644"
+
+- name: 检查现有 ~/.claude.json 是否存在
+  stat:
+    path: ~/.claude.json
+  register: existing_claude_json
+
+- name: 若 ~/.claude.json 不存在则创建空 JSON
+  copy:
+    content: "{}"
+    dest: ~/.claude.json
+    mode: "0644"
+  when: not existing_claude_json.stat.exists
+
+- name: 执行 jq deep merge
+  shell: |
+    jq -s '.[0] * .[1]' ~/.claude.json /tmp/claude_json_patch.json > /tmp/claude_json_merged.json
+  changed_when: false
+
+- name: 格式化现有 claude.json（用于差异比较）
+  shell: |
+    jq -S . ~/.claude.json > /tmp/claude_json_existing_sorted.json 2>/dev/null || cp ~/.claude.json /tmp/claude_json_existing_sorted.json
+  changed_when: false
+
+- name: 格式化合并后的 JSON（用于差异比较）
+  shell: |
+    jq -S . /tmp/claude_json_merged.json > /tmp/claude_json_merged_sorted.json 2>/dev/null || cp /tmp/claude_json_merged.json /tmp/claude_json_merged_sorted.json
+  changed_when: false
+
+- name: 检查是否有差异
+  shell: |
+    diff -u /tmp/claude_json_existing_sorted.json /tmp/claude_json_merged_sorted.json || true
+  register: claude_json_diff
+  changed_when: false
+
+- name: 显示 claude.json 差异
+  debug:
+    msg: |
+      ========================================
+      claude.json 差异预览
+      ========================================
+      {% if claude_json_diff.stdout == "" %}
+      ✓ 配置无变化，无需更新
+      {% else %}
+      {{ claude_json_diff.stdout }}
+      {% endif %}
+
+- name: 生成时间戳
+  shell: date +"%Y%m%d_%H%M%S"
+  register: timestamp
+  when: claude_json_diff.stdout != ""
+  changed_when: false
+
+- name: 备份现有 claude.json
+  copy:
+    src: ~/.claude.json
+    dest: "{{ playbook_dir }}/../tmps/backup/claude.json.{{ timestamp.stdout }}"
+    mode: "0644"
+  when: claude_json_diff.stdout != ""
+
+- name: 显示备份信息
+  debug:
+    msg: |
+      备份已创建：tmps/backup/claude.json.{{ timestamp.stdout }}
+  when: claude_json_diff.stdout != ""
+
+- name: 询问是否继续更新
+  pause:
+    prompt: |
+      ========================================
+      ⚠️  检测到 claude.json 配置变更！
+      ========================================
+      上述差异将被应用（deep merge 模式，仅覆盖声明的 key）
+
+      备份文件：tmps/backup/claude.json.{{ timestamp.stdout }}
+
+      是否继续？(yes/no)
+  when: claude_json_diff.stdout != "" and claude_json.confirm_claude_json_update | default(true) | bool
+  register: user_confirmation
+
+- name: 确认用户选择
+  fail:
+    msg: "用户取消了 claude.json 更新"
+  when: claude_json_diff.stdout != "" and claude_json.confirm_claude_json_update | default(true) | bool and user_confirmation.user_input != "yes" and user_confirmation.user_input != "y"
+
+- name: 更新 ~/.claude.json
+  copy:
+    src: /tmp/claude_json_merged.json
+    dest: ~/.claude.json
+    mode: "0644"
+  when: claude_json_diff.stdout != ""
+
+- name: 显示 claude.json 同步完成信息
+  debug:
+    msg: "✓ claude.json 同步完成（deep merge）"
