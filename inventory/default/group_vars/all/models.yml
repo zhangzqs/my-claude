@@ -1,11 +1,18 @@
 model_configs:
-  volces:
+  volces_doubao:
     baseURL: https://ark.cn-beijing.volces.com/api/coding
     api_key: "{{ secrets.api_keys.volces }}"
     opus_model: "doubao-seed-2.0-code"
     sonnet_model: "doubao-seed-2.0-code"
     haiku_model: "doubao-seed-2.0-code"
     claude_code_subagent: "doubao-seed-2.0-code"
+  volces_kimi_k2_5:
+    baseURL: https://ark.cn-beijing.volces.com/api/coding
+    api_key: "{{ secrets.api_keys.volces }}"
+    opus_model: "kimi-k2.5"
+    sonnet_model: "kimi-k2.5"
+    haiku_model: "kimi-k2.5"
+    claude_code_subagent: "kimi-k2.5"
   qiniu_claude:
     baseURL: https://openai.qiniu.com
     api_key: "{{ secrets.api_keys.qiniu_claude }}"
@@ -14,4 +21,6 @@ model_configs:
     haiku_model: "claude-4.6-haiku"
     claude_code_subagent: "claude-4.5-sonnet"
 
-use_model: "volces"
+use_model: "volces_doubao"
+# use_model: "qiniu_claude"
+# use_model: "volces_kimi_k2_5"
