@@ -18,6 +18,16 @@
 - **配置备份**：同步时自动备份旧配置到 `tmps/backup/` 目录，格式：`settings.json.YYYYMMDD_HHMMSS`、`claude.json.YYYYMMDD_HHMMSS`
 - **确认机制**：`confirm_settings_update` 控制 settings.json 更新，`claude_json.confirm_claude_json_update` 控制 claude.json 更新；使用 `skip_confirm=true` 可跳过所有确认（CI/CD 用）
 - **预览模式**：`task check` / `task check-sync` 使用 Ansible 的 `--check --diff` 模式
+- **Playbook 语法检查**：使用 `uv run ansible-playbook --syntax-check` 验证 Playbook 语法
+- **模板渲染测试**：使用 `uv run ansible -m template` 快速验证单模板渲染
+- **深度合并语法**：使用 `jq -s '.[0] * .[1]'` 递归合并 JSON 文件
+- **配置搜索**：使用 `grep -r --include="*.yml" --include="*.j2" --include="*.yaml"` 搜索项目配置
+
+### 注意事项
+
+- **--check 模式限制**：`--check` 模式下 template 模块不会创建文件，依赖文件的任务可能失败
+- **变量覆盖风险**：使用 `-e '{"key": {"subkey": "value"}}'` 格式会**完全覆盖**原变量
+- **正确的变量传递**：使用顶层变量（如 `skip_confirm=true`）避免嵌套变量覆盖问题
 - **Skills 目录结构**：自定义 skills 位于 `claude-assets/skills/`，每个 skill 在独立子目录中，文件名为 `SKILL.md`
 - **Skill 命名规范**：front-matter 必须包含 `name:` 字段，部分 skills 使用 `ms-` 前缀（如 ms-git-commit）
 
