@@ -21,6 +21,6 @@ model_configs:
     haiku_model: "claude-4.6-haiku"
     claude_code_subagent: "claude-4.5-sonnet"
 
-use_model: "qiniu_claude"
+use_model: "volces_doubao"
 # use_model: "qiniu_claude"
 # use_model: "volces_kimi_k2_5"
