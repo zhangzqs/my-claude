@@ -426,6 +426,255 @@ uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 
 ---
 
+## 全局开发指导（补充）
+
+### 实施前强制检查清单
+
+**注意：在编写任何代码之前，必须完成此清单：**
+
+#### 这是代码实施任务吗？
+
+检查用户请求是否包含以下任一关键词：
+- `实现`, `添加`, `写`, `创建`, `开发`, `修改`, `重构`
+- `implement`, `add`, `write`, `create`, `develop`, `modify`, `refactor`
+
+#### 如果是，必须按以下顺序执行：
+
+1. **[ ] 先写设计文档**
+   - 在 `docs/design/FEATURE_NAME.md` 中创建设计文档
+   - **保持简洁**：目标 3-5 页，5 分钟内可读
+   - **关注决策而非细节**：
+     - 问题陈述和目标
+     - 核心架构（带图表）
+     - 关键设计决策
+     - 需要用户输入的开放问题
+   - **不要过度记录**：
+     - 无详细代码示例（留给实施阶段）
+     - 无明显的实施细节
+     - 无详尽的 API 文档（留给代码注释）
+
+2. **[ ] 获取用户批准**
+   - 使用 AskUserQuestion 工具展示设计
+   - 询问："我已完成设计文档。是否继续实施？"
+   - 等待明确批准
+
+3. **[ ] 编写测试**
+   - 在 `tests/unit/`、`tests/integration/` 或适当的测试目录中创建测试文件
+   - 遵循红-绿-重构循环
+
+4. **[ ] 实施代码**
+   - **只有现在**才能编写实施代码
+   - 编写最少代码来通过测试
+
+5. **[ ] 验证**
+   - 运行测试
+   - 验证实施与设计匹配
+   - 如需要更新文档
+
+#### 如果你跳过上述任何步骤，就是违反项目规则。
+
+**例外**：简单任务如修复拼写错误、读取文件或回答问题不需要此清单。
+
+---
+
+### 开发工作流：文档优先 + TDD
+
+此工作流遵循**严格的文档优先 TDD**：
+
+1. **文档优先** - 在编写代码前更新架构文档
+2. **编写测试** - 遵循红-绿-重构循环
+3. **实施** - 编写最少代码来通过测试
+4. **验证** - 确保实施与记录的设计匹配
+
+**永远不要跳过文档。永远不要跳过测试。**
+
+---
+
+### 文档标准
+
+#### 推荐目录结构
+
+```
+docs/
+├── architecture/      # 系统级架构文档 (*_arch.md)
+├── design/           # 功能设计文档 (*_design.md)
+├── adr/              # 架构决策记录 (###_topic.md)
+├── guides/           # 使用指南 (*_guide.md)
+├── integration/      # 集成文档 (*_integration.md)
+├── api/              # API 文档 (*_api.md)
+└── references/       # 参考材料
+```
+
+#### 命名规范
+
+**核心原则**：关键词优先 + 后缀标识符（便于 AI 搜索）
+
+| 文档类型 | 格式 | 示例 |
+|----------|--------|---------|
+| 架构 | `{topic}_arch.md` | `orchestrator_arch.md` |
+| 设计 | `{feature}_design.md` | `streaming_thought_design.md` |
+| ADR | `{number}_{topic}.md` | `001_single_vs_multi_agent.md` |
+| 指南 | `{topic}_guide.md` | `configuration_guide.md` |
+| 集成 | `{system}_integration.md` | `gateway_integration.md` |
+
+#### 文档搜索策略
+
+**按主题搜索（推荐）**：
+```python
+# 查找与主题相关的所有文档
+Glob("docs/**/*orchestrator*")
+Glob("docs/**/*streaming*")
+```
+
+**按类型搜索**：
+```python
+# 查找所有架构文档
+Glob("docs/**/*_arch.md")
+
+# 查找所有设计文档
+Glob("docs/**/*_design.md")
+
+# 查找所有指南
+Glob("docs/**/*_guide.md")
+```
+
+**按目录搜索**：
+```python
+Glob("docs/architecture/*.md")
+Glob("docs/adr/*.md")
+```
+
+#### 搜索最佳实践
+
+1. **首先确定文档类型**：
+   - 组件架构 → `docs/architecture/`
+   - 功能设计 → `docs/design/`
+   - 决策背景 → `docs/adr/`
+   - 操作指南 → `docs/guides/`
+   - 外部集成 → `docs/integration/`
+
+2. **使用精确的 Glob 模式**：
+   - ✅ `Glob("docs/architecture/*orchestrator*")` - 精确
+   - ⚠️ `Glob("docs/**/*orchestrator*")` - 全局搜索（后备方案）
+   - ❌ `Glob("docs/**/*.md")` - 太宽泛
+
+3. **先读取索引文件**：
+   - 每个目录应该有一个 `README.md` 作为索引
+   - 索引提供快速导航和概览
+
+4. **当文档不存在时**：
+   - 检查 `docs/README.md` 确认是否应该存在
+   - 遵循命名规范创建新文档
+
+5. **避免冗余搜索**：
+   - 不要同时使用 Glob 和 Grep 搜索相同内容
+   - 使用 Glob 定位文件，然后用 Read 查看内容
+
+---
+
+### 设计文档原则
+
+编写设计文档时：
+
+1. **保持简洁**：3-5 页，5 分钟内可读
+2. **关注决策**：做什么和为什么，而非每个细节
+3. **包含**：
+   - 问题陈述和目标
+   - 核心架构（如有帮助带图表）
+   - 关键设计决策和权衡
+   - 需要用户输入的开放问题
+4. **排除**：
+   - 详细代码示例（留给实施阶段）
+   - 明显的实施细节
+   - 详尽的 API 文档（属于代码注释）
+
+---
+
+### 代码质量原则
+
+- **避免过度工程**：只进行直接请求或明确必要的更改
+- **保持方案简单**：不要添加超出要求的功能、重构或"改进"
+- **最小化代码**：编写当前任务所需的最少代码
+- **删除未使用的代码**：不要留下向后兼容的黑客或未使用的变量
+- **安全第一**：避免 OWASP 前 10 大漏洞（XSS、SQL 注入等）
+- **持续加固**：安全不是一次性任务；每次更改都应用增量加固
+
+---
+
+### Git 提交标准：原子提交 + Conventional Commits
+
+#### 原子提交
+
+每个提交应该**只做一件事**。好处：
+- `git bisect` 可以快速定位问题
+- 回滚安全且不影响无关功能
+- 代码审查清晰且专注
+
+**不好的示例**：
+```
+feat: add user auth, fix navbar, update docs
+```
+
+**好的示例**：
+```
+feat: add JWT token validation middleware
+fix: correct navbar alignment on mobile
+docs: update auth setup guide
+```
+
+#### Conventional Commits
+
+所有提交必须使用类型前缀：
+
+| 类型 | 用途 | 示例 |
+|------|---------|---------|
+| `feat:` | 新功能 | `feat: add dark mode toggle` |
+| `fix:` | 错误修复 | `fix: resolve memory leak in WebSocket handler` |
+| `docs:` | 仅文档 | `docs: update API endpoint reference` |
+| `chore:` | 构建、依赖、配置 | `chore: upgrade vite to v6` |
+| `test:` | 添加或更新测试 | `test: add unit tests for auth middleware` |
+| `refactor:` | 代码重构，无行为变更 | `refactor: extract validation logic to shared util` |
+| `style:` | 格式，无逻辑变更 | `style: fix indentation in config file` |
+| `perf:` | 性能改进 | `perf: cache database query results` |
+
+#### 提交纪律
+
+- `fix` 提交不得更改 API 契约
+- `feat` 提交必须有明确的范围边界
+- `refactor` 提交不得更改可观察行为
+- `docs` 提交必须独立于代码更改
+- 每个功能更改应伴随相关的 `docs` 和 `test` 提交
+
+---
+
+### CLI 优先工具原则
+
+选择工具和服务时，优先考虑具有 CLI 接口的工具：
+- CLI 工具是确定的、可测试的且文档完善的
+- AI 代理可以直接调用它们，无需额外的抽象层
+- 在项目 CLAUDE.md 中列出可用的 CLI 工具（例如 `logs: axiom or vercel cli`）
+- 避免在 CLI 工具上进行不必要的包装或抽象层
+
+CLI 友好工具示例：`gh`、`psql`、`vercel`、`docker`、`kubectl`、`aws`、`gcloud`
+
+---
+
+### CLAUDE.md 编写原则
+
+此文件本身应遵循以下规则：
+
+1. **保持简洁**：前沿模型可以可靠地遵循约 150-200 条指令。每一行都应该证明自己的价值——问"删除这会导致错误吗？"如果不会，就删掉它。
+2. **渐进式披露**：不要倾倒所有可能的信息。告诉 Claude *如何找到*信息，而不是预先列出所有内容。使用引用如"详见 `docs/architecture/`"。
+3. **可操作胜于信息性**：优先考虑"使用 ES 模块，而非 CommonJS"而非"项目使用 ES 模块"。
+4. **定期更新**：像对待代码一样对待 CLAUDE.md——当出现问题时审查它，定期精简它。
+5. **适当分层**：
+   - `~/.claude/CLAUDE.md` — 全局偏好（本文件）
+   - `PROJECT_ROOT/CLAUDE.md` — 共享团队上下文
+   - `subdirectory/CLAUDE.md` — 模块特定指导
+   - `CLAUDE.local.md` — 个人覆盖（git 忽略）
+
+---
+
 ## AI 使用指引
 
 ### 自定义 Skills
