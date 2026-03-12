@@ -20,7 +20,22 @@ model_configs:
     sonnet_model: "claude-4.5-sonnet"
     haiku_model: "claude-4.6-haiku"
     claude_code_subagent: "claude-4.5-sonnet"
+  qiniu_gpt_5_4:
+    baseURL: https://openai.qiniu.com
+    api_key: "{{ secrets.api_keys.qiniu_claude }}"
+    opus_model: "openai/gpt-5.4"
+    sonnet_model: "openai/gpt-5.4"
+    haiku_model: "openai/gpt-5.4"
+    claude_code_subagent: "openai/gpt-5.4"
+  jdo_claude:
+    baseURL: "https://api.ppio.com/anthropic"
+    api_key: "{{ secrets.api_keys.jdo_key }}"
+    opus_model: "pa/claude-opus-4-6"
+    sonnet_model: "pa/claude-sonnet-4-5-20250929"
+    haiku_model: "pa/claude-haiku-4-5-20251001"
+    claude_code_subagent: "pa/claude-opus-4-6"
 
-use_model: "qiniu_claude"
+# use_model: "qiniu_claude"
+use_model: "jdo_claude"
 # use_model: "qiniu_claude"
 # use_model: "volces_kimi_k2_5"
