@@ -1,6 +1,6 @@
 # my-claude-ansible
 
-> **Claude Code 配置管理仓库** - 基于 Ansible 的声明式配置管理，实现 Claude 个性化配置的自动化部署与同步
+> **Claude Code + Codex CLI 配置管理仓库** - 基于 Ansible 的声明式配置管理，实现 Claude Code 和 Codex CLI 个性化配置的自动化部署与同步
 
 ---
 
@@ -19,14 +19,16 @@
 - **Python 命令前缀**：所有 Python/Ansible 命令必须使用 `uv run` 前缀（如 `uv run ansible-playbook`）
 - **任务管理**：使用 `Taskfile.yml` 统一管理所有任务，运行 `task --list` 查看可用任务
 - **常用任务**：
-  - `task deploy` - 完整部署
-  - `task sync` - 仅同步配置
+  - `task deploy` - 完整部署（Claude + Codex）
+  - `task sync` - 仅同步 Claude 配置
+  - `task sync-codex` - 仅同步 Codex CLI 配置
   - `task sync-claude-json` - 仅同步 ~/.claude.json（deep merge 模式）
   - `task check-claude-json` - 预览 claude.json 变更
+  - `task check-codex` - 预览 Codex 配置变更
   - `task check` - 预览完整变更
 - **配置同步**：更新 settings.yml 后使用 `task sync` 同步到 `~/.claude/`
-- **配置备份**：同步时自动备份旧配置到 `tmps/backup/` 目录，格式：`settings.json.YYYYMMDD_HHMMSS`、`claude.json.YYYYMMDD_HHMMSS`
-- **确认机制**：`confirm_settings_update` 控制 settings.json 更新，`claude_json.confirm_claude_json_update` 控制 claude.json 更新；使用 `skip_confirm=true` 可跳过所有确认（CI/CD 用）
+- **配置备份**：同步时自动备份旧配置到 `tmps/backup/` 目录，格式：`settings.json.YYYYMMDD_HHMMSS`、`claude.json.YYYYMMDD_HHMMSS`、`codex_config.toml.YYYYMMDD_HHMMSS`
+- **确认机制**：`confirm_settings_update` 控制 settings.json 更新，`claude_json.confirm_claude_json_update` 控制 claude.json 更新，`codex_config.confirm_codex_config_update` 控制 config.toml 更新；使用 `skip_confirm=true` 可跳过所有确认（CI/CD 用）
 - **预览模式**：`task check` / `task check-sync` 使用 Ansible 的 `--check --diff` 模式
 - **Playbook 语法检查**：使用 `uv run ansible-playbook --syntax-check` 验证 Playbook 语法
 - **模板渲染测试**：使用 `uv run ansible -m template` 快速验证单模板渲染
@@ -66,13 +68,14 @@
 
 ## 项目愿景
 
-**my-claude-ansible** 旨在提供一个可重复、可版本控制的 Claude Code 配置管理解决方案，通过 Ansible 的基础设施即代码（IaC）理念，实现：
+**my-claude-ansible** 旨在提供一个可重复、可版本控制的 AI CLI 工具配置管理解决方案，通过 Ansible 的基础设施即代码（IaC）理念，实现：
 
 - **声明式配置管理**：使用 YAML 声明期望状态，由 Ansible 自动执行到位
+- **多工具统一管理**：同时管理 Claude Code (`~/.claude/`) 和 Codex CLI (`~/.codex/`) 的配置
 - **个性化输出风格**：支持多种人格化输出风格（猫娘工程师、大小姐工程师、老王工程师等）
 - **自定义命令扩展**：通过 Markdown 定义 Claude 自定义命令（如 git-commit、init-project）
 - **模型配置灵活性**：支持多层级模型配置（Opus、Sonnet、Haiku、子代理模型）
-- **跨环境一致性**：确保开发、测试、生产环境的 Claude 配置一致
+- **跨环境一致性**：确保开发、测试、生产环境的配置一致
 
 ---
 
@@ -88,11 +91,15 @@ my-claude/
 │   ├── output-styles/   # 输出风格定义
 │   ├── CLAUDE.md        # 全局指令文档
 │   └── settings.yml.j2  # settings.json 的 Jinja2 模板
+├── codex-assets/         # Codex CLI 配置资源
+│   ├── config.toml.j2   # config.toml 的 Jinja2 模板
+│   └── AGENTS.md        # Codex 全局指令文档
 ├── inventory/           # Ansible 清单与变量
 │   └── default/
 │       ├── inventory.yml         # 主机清单
 │       └── group_vars/all/
-│           ├── settings.yml      # 公开配置变量
+│           ├── settings.yml      # Claude 公开配置变量
+│           ├── codex_config.yml  # Codex 配置变量
 │           └── secrets.yml       # 敏感配置（API Key 等）
 ├── playbooks/           # Ansible Playbook
 │   └── setup.yml                # 一键部署（安装插件 + 同步配置）
@@ -107,7 +114,9 @@ my-claude/
 1. 在 `inventory/default/group_vars/all/settings.yml` 中声明配置变量
 2. Ansible 读取变量并渲染 `claude-assets/settings.yml.j2` 模板
 3. 将渲染结果转换为 JSON 格式输出到 `~/.claude/settings.json`
-4. 使用 rsync 同步 `skills`、`output-styles`、`CLAUDE.md` 等资源文件到 `~/.claude/`
+4. 使用 rsync 同步 `skills`、`output-styles`、`rules`、`CLAUDE.md` 等资源文件到 `~/.claude/`
+5. 渲染 `codex-assets/config.toml.j2` 模板输出到 `~/.codex/config.toml`
+6. 同步 `codex-assets/AGENTS.md` 到 `~/.codex/AGENTS.md`
 
 ---
 
@@ -120,7 +129,9 @@ my-claude/
 | `claude-assets/skills/`        | 自定义命令定义（Markdown 格式）                           | `git-commit.md`, `git-sync-branch.md`, `init-project.md` |
 | `claude-assets/agents/`        | 自定义智能体定义（子 Agent）                              | `init-architect.md`, `get-current-datetime.md`           |
 | `claude-assets/output-styles/` | 个性化输出风格定义（人格化）                              | `nekomata-engineer.md`, `laowang-engineer.md` 等         |
-| `inventory/`                   | Ansible 清单与变量管理                                    | `inventory.yml`, `settings.yml`, `secrets.yml`           |
+| `claude-assets/rules/`         | 开发规范文件（工作流、代码风格、Git 规范等）              | `workflows.md`, `code-style.md`, `git.md` 等            |
+| `codex-assets/`                | Codex CLI 配置资源（模板、指令文件）                      | `config.toml.j2`, `AGENTS.md`                            |
+| `inventory/`                   | Ansible 清单与变量管理                                    | `inventory.yml`, `settings.yml`, `codex_config.yml`, `secrets.yml` |
 | `playbooks/`                   | Ansible Playbook 剧本                                     | `setup.yml`（通过 tags 控制执行阶段）                    |
 
 ---
@@ -163,14 +174,18 @@ uv run ansible-playbook playbooks/setup.yml
 
 1. 检查 Claude CLI 是否已安装（未安装会提示并停止，不自动安装）
 2. 自动安装 `enabled_plugins` 列表中的插件
-3. 同步配置到 `~/.claude/settings.json`
-4. 验证部署结果
+3. 同步 Claude 配置到 `~/.claude/settings.json`
+4. 同步 Codex CLI 配置到 `~/.codex/config.toml` 和 `~/.codex/AGENTS.md`
+5. 验证部署结果
 
 ### 常用选项
 
 ```bash
 # 跳过插件安装（仅同步配置）
 uv run ansible-playbook playbooks/setup.yml --tags sync_config
+
+# 仅同步 Codex CLI 配置
+uv run ansible-playbook playbooks/setup.yml --tags sync_codex_config
 
 # 仅安装插件
 uv run ansible-playbook playbooks/setup.yml --tags install_plugins
@@ -182,14 +197,20 @@ uv run ansible-playbook playbooks/setup.yml --check --diff
 ### 验证配置
 
 ```bash
-# 检查 settings.json 是否正确生成
+# 检查 Claude settings.json 是否正确生成
 cat ~/.claude/settings.json | jq .
+
+# 检查 Codex config.toml 是否正确生成
+cat ~/.codex/config.toml
 
 # 检查自定义命令是否同步
 ls -la ~/.claude/skills/
 
 # 检查输出风格是否同步
 ls -la ~/.claude/output-styles/
+
+# 检查 Codex 指令文件是否同步
+cat ~/.codex/AGENTS.md
 ```
 
 ---
@@ -216,11 +237,14 @@ brew install go-task
 # 查看所有可用任务
 task --list
 
-# 一键部署（推荐）
+# 一键部署（推荐，包含 Claude + Codex）
 task deploy
 
-# 同步配置到 ~/.claude（常用）
+# 同步 Claude 配置到 ~/.claude（常用）
 task sync
+
+# 同步 Codex 配置到 ~/.codex
+task sync-codex
 
 # 仅安装插件
 task install-plugins
@@ -228,11 +252,17 @@ task install-plugins
 # 预览配置变更
 task check-sync
 
+# 预览 Codex 配置变更
+task check-codex
+
 # 完整预览变更
 task check
 
 # 查看当前配置
 task view-settings
+
+# 查看 Codex 配置
+task view-codex-config
 
 # 查看所有可用 tags
 task list-tags
@@ -243,18 +273,21 @@ task list-tags
 | 任务                     | 说明                              |
 | ------------------------ | --------------------------------- |
 | `task deploy`            | 完整部署（安装插件 + 同步配置）   |
-| `task sync`              | 仅同步配置                        |
+| `task sync`              | 仅同步 Claude 配置               |
+| `task sync-codex`        | 仅同步 Codex CLI 配置            |
 | `task install-plugins`   | 仅安装插件                        |
 | `task sync-claude-json`  | 仅同步 claude.json（deep merge）  |
 | `task check-claude-json` | 预览 claude.json 变更（不执行）   |
+| `task check-codex`       | 预览 Codex 配置变更（不执行）     |
 | `task check`             | 预览完整部署变更（不执行）        |
 | `task check-sync`        | 预览配置同步变更（不执行）        |
-| `task sync-force`        | 同步配置，跳过确认（CI/CD 用）    |
+| `task sync-force`        | 同步所有配置，跳过确认（CI/CD 用）|
 | `task deploy-force`      | 完整部署，跳过确认（CI/CD 用）    |
 | `task list-tags`         | 查看所有可用 tags                 |
 | `task list-tasks`        | 查看所有 Ansible 任务             |
 | `task view-settings`     | 查看当前 ~/.claude/settings.json  |
 | `task view-claude-json`  | 查看当前 ~/.claude.json（格式化） |
+| `task view-codex-config` | 查看当前 ~/.codex/config.toml     |
 
 **说明**：
 
@@ -282,6 +315,26 @@ settings:
 
 - `task sync-force` - 同步配置不询问
 - `task deploy-force` - 完整部署不询问
+
+### Codex CLI 配置管理
+
+Codex CLI 配置与 Claude Code 并行部署、互不干扰，共享 API keys。
+
+**配置文件**：
+
+| Codex 概念 | 对应 Claude 概念 | 部署位置 |
+|-----------|-----------------|---------|
+| `config.toml` | `settings.json` | `~/.codex/config.toml` |
+| `AGENTS.md` | `CLAUDE.md` | `~/.codex/AGENTS.md` |
+
+**配置变量**：在 `inventory/<config>/group_vars/all/codex_config.yml` 中定义，包含模型提供商、模型名、沙箱模式等。
+
+**修改 Codex 配置流程**：
+
+1. 编辑 `inventory/<config>/group_vars/all/codex_config.yml`
+2. 预览变更：`task check-codex`
+3. 执行同步：`task sync-codex`
+4. 验证结果：`task view-codex-config`
 
 ### 修改配置流程
 
@@ -410,7 +463,7 @@ uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 
 - 本项目使用**单一入口 playbook**（`setup.yml`）+ tags 控制执行阶段
 - 不要创建独立的 `install_*.yml`，统一通过 `setup.yml --tags <stage>` 执行
-- 可用 tags：`install_cli`、`install_plugins`、`sync_config`、`verify`
+- 可用 tags：`install_cli`、`install_plugins`、`sync_claude_json`、`sync_config`、`sync_codex_config`、`verify`
 - `install_cli` tag 为兼容保留；当前仅检查 Claude CLI，并在需要时安装 ccline
 - 查看所有 tags：`grep -E '^\s+tags:' playbooks/setup.yml | sort -u`
 
@@ -423,6 +476,255 @@ uv run ansible-playbook playbooks/setup.yml --tags sync_config --check --diff
 - `docs(scope): 文档更新`
 - `refactor(scope): 代码重构`
 - `chore(scope): 杂务维护`
+
+---
+
+## 全局开发指导（补充）
+
+### 实施前强制检查清单
+
+**注意：在编写任何代码之前，必须完成此清单：**
+
+#### 这是代码实施任务吗？
+
+检查用户请求是否包含以下任一关键词：
+- `实现`, `添加`, `写`, `创建`, `开发`, `修改`, `重构`
+- `implement`, `add`, `write`, `create`, `develop`, `modify`, `refactor`
+
+#### 如果是，必须按以下顺序执行：
+
+1. **[ ] 先写设计文档**
+   - 在 `docs/design/FEATURE_NAME.md` 中创建设计文档
+   - **保持简洁**：目标 3-5 页，5 分钟内可读
+   - **关注决策而非细节**：
+     - 问题陈述和目标
+     - 核心架构（带图表）
+     - 关键设计决策
+     - 需要用户输入的开放问题
+   - **不要过度记录**：
+     - 无详细代码示例（留给实施阶段）
+     - 无明显的实施细节
+     - 无详尽的 API 文档（留给代码注释）
+
+2. **[ ] 获取用户批准**
+   - 使用 AskUserQuestion 工具展示设计
+   - 询问："我已完成设计文档。是否继续实施？"
+   - 等待明确批准
+
+3. **[ ] 编写测试**
+   - 在 `tests/unit/`、`tests/integration/` 或适当的测试目录中创建测试文件
+   - 遵循红-绿-重构循环
+
+4. **[ ] 实施代码**
+   - **只有现在**才能编写实施代码
+   - 编写最少代码来通过测试
+
+5. **[ ] 验证**
+   - 运行测试
+   - 验证实施与设计匹配
+   - 如需要更新文档
+
+#### 如果你跳过上述任何步骤，就是违反项目规则。
+
+**例外**：简单任务如修复拼写错误、读取文件或回答问题不需要此清单。
+
+---
+
+### 开发工作流：文档优先 + TDD
+
+此工作流遵循**严格的文档优先 TDD**：
+
+1. **文档优先** - 在编写代码前更新架构文档
+2. **编写测试** - 遵循红-绿-重构循环
+3. **实施** - 编写最少代码来通过测试
+4. **验证** - 确保实施与记录的设计匹配
+
+**永远不要跳过文档。永远不要跳过测试。**
+
+---
+
+### 文档标准
+
+#### 推荐目录结构
+
+```
+docs/
+├── architecture/      # 系统级架构文档 (*_arch.md)
+├── design/           # 功能设计文档 (*_design.md)
+├── adr/              # 架构决策记录 (###_topic.md)
+├── guides/           # 使用指南 (*_guide.md)
+├── integration/      # 集成文档 (*_integration.md)
+├── api/              # API 文档 (*_api.md)
+└── references/       # 参考材料
+```
+
+#### 命名规范
+
+**核心原则**：关键词优先 + 后缀标识符（便于 AI 搜索）
+
+| 文档类型 | 格式 | 示例 |
+|----------|--------|---------|
+| 架构 | `{topic}_arch.md` | `orchestrator_arch.md` |
+| 设计 | `{feature}_design.md` | `streaming_thought_design.md` |
+| ADR | `{number}_{topic}.md` | `001_single_vs_multi_agent.md` |
+| 指南 | `{topic}_guide.md` | `configuration_guide.md` |
+| 集成 | `{system}_integration.md` | `gateway_integration.md` |
+
+#### 文档搜索策略
+
+**按主题搜索（推荐）**：
+```python
+# 查找与主题相关的所有文档
+Glob("docs/**/*orchestrator*")
+Glob("docs/**/*streaming*")
+```
+
+**按类型搜索**：
+```python
+# 查找所有架构文档
+Glob("docs/**/*_arch.md")
+
+# 查找所有设计文档
+Glob("docs/**/*_design.md")
+
+# 查找所有指南
+Glob("docs/**/*_guide.md")
+```
+
+**按目录搜索**：
+```python
+Glob("docs/architecture/*.md")
+Glob("docs/adr/*.md")
+```
+
+#### 搜索最佳实践
+
+1. **首先确定文档类型**：
+   - 组件架构 → `docs/architecture/`
+   - 功能设计 → `docs/design/`
+   - 决策背景 → `docs/adr/`
+   - 操作指南 → `docs/guides/`
+   - 外部集成 → `docs/integration/`
+
+2. **使用精确的 Glob 模式**：
+   - ✅ `Glob("docs/architecture/*orchestrator*")` - 精确
+   - ⚠️ `Glob("docs/**/*orchestrator*")` - 全局搜索（后备方案）
+   - ❌ `Glob("docs/**/*.md")` - 太宽泛
+
+3. **先读取索引文件**：
+   - 每个目录应该有一个 `README.md` 作为索引
+   - 索引提供快速导航和概览
+
+4. **当文档不存在时**：
+   - 检查 `docs/README.md` 确认是否应该存在
+   - 遵循命名规范创建新文档
+
+5. **避免冗余搜索**：
+   - 不要同时使用 Glob 和 Grep 搜索相同内容
+   - 使用 Glob 定位文件，然后用 Read 查看内容
+
+---
+
+### 设计文档原则
+
+编写设计文档时：
+
+1. **保持简洁**：3-5 页，5 分钟内可读
+2. **关注决策**：做什么和为什么，而非每个细节
+3. **包含**：
+   - 问题陈述和目标
+   - 核心架构（如有帮助带图表）
+   - 关键设计决策和权衡
+   - 需要用户输入的开放问题
+4. **排除**：
+   - 详细代码示例（留给实施阶段）
+   - 明显的实施细节
+   - 详尽的 API 文档（属于代码注释）
+
+---
+
+### 代码质量原则
+
+- **避免过度工程**：只进行直接请求或明确必要的更改
+- **保持方案简单**：不要添加超出要求的功能、重构或"改进"
+- **最小化代码**：编写当前任务所需的最少代码
+- **删除未使用的代码**：不要留下向后兼容的黑客或未使用的变量
+- **安全第一**：避免 OWASP 前 10 大漏洞（XSS、SQL 注入等）
+- **持续加固**：安全不是一次性任务；每次更改都应用增量加固
+
+---
+
+### Git 提交标准：原子提交 + Conventional Commits
+
+#### 原子提交
+
+每个提交应该**只做一件事**。好处：
+- `git bisect` 可以快速定位问题
+- 回滚安全且不影响无关功能
+- 代码审查清晰且专注
+
+**不好的示例**：
+```
+feat: add user auth, fix navbar, update docs
+```
+
+**好的示例**：
+```
+feat: add JWT token validation middleware
+fix: correct navbar alignment on mobile
+docs: update auth setup guide
+```
+
+#### Conventional Commits
+
+所有提交必须使用类型前缀：
+
+| 类型 | 用途 | 示例 |
+|------|---------|---------|
+| `feat:` | 新功能 | `feat: add dark mode toggle` |
+| `fix:` | 错误修复 | `fix: resolve memory leak in WebSocket handler` |
+| `docs:` | 仅文档 | `docs: update API endpoint reference` |
+| `chore:` | 构建、依赖、配置 | `chore: upgrade vite to v6` |
+| `test:` | 添加或更新测试 | `test: add unit tests for auth middleware` |
+| `refactor:` | 代码重构，无行为变更 | `refactor: extract validation logic to shared util` |
+| `style:` | 格式，无逻辑变更 | `style: fix indentation in config file` |
+| `perf:` | 性能改进 | `perf: cache database query results` |
+
+#### 提交纪律
+
+- `fix` 提交不得更改 API 契约
+- `feat` 提交必须有明确的范围边界
+- `refactor` 提交不得更改可观察行为
+- `docs` 提交必须独立于代码更改
+- 每个功能更改应伴随相关的 `docs` 和 `test` 提交
+
+---
+
+### CLI 优先工具原则
+
+选择工具和服务时，优先考虑具有 CLI 接口的工具：
+- CLI 工具是确定的、可测试的且文档完善的
+- AI 代理可以直接调用它们，无需额外的抽象层
+- 在项目 CLAUDE.md 中列出可用的 CLI 工具（例如 `logs: axiom or vercel cli`）
+- 避免在 CLI 工具上进行不必要的包装或抽象层
+
+CLI 友好工具示例：`gh`、`psql`、`vercel`、`docker`、`kubectl`、`aws`、`gcloud`
+
+---
+
+### CLAUDE.md 编写原则
+
+此文件本身应遵循以下规则：
+
+1. **保持简洁**：前沿模型可以可靠地遵循约 150-200 条指令。每一行都应该证明自己的价值——问"删除这会导致错误吗？"如果不会，就删掉它。
+2. **渐进式披露**：不要倾倒所有可能的信息。告诉 Claude *如何找到*信息，而不是预先列出所有内容。使用引用如"详见 `docs/architecture/`"。
+3. **可操作胜于信息性**：优先考虑"使用 ES 模块，而非 CommonJS"而非"项目使用 ES 模块"。
+4. **定期更新**：像对待代码一样对待 CLAUDE.md——当出现问题时审查它，定期精简它。
+5. **适当分层**：
+   - `~/.claude/CLAUDE.md` — 全局偏好（本文件）
+   - `PROJECT_ROOT/CLAUDE.md` — 共享团队上下文
+   - `subdirectory/CLAUDE.md` — 模块特定指导
+   - `CLAUDE.local.md` — 个人覆盖（git 忽略）
 
 ---
 

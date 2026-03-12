@@ -43,6 +43,16 @@ tasks:
     cmds:
       - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_claude_json --check --diff'
 
+  sync-codex:
+    desc: 仅同步 Codex CLI 配置
+    cmds:
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_codex_config'
+
+  check-codex:
+    desc: 预览 Codex 配置变更（不执行）
+    cmds:
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_codex_config --check --diff'
+
   # ===== CI/CD 任务（跳过确认） =====
 
   deploy-force:
@@ -53,7 +63,7 @@ tasks:
   sync-force:
     desc: 同步配置，跳过确认（CI/CD 用）
     cmds:
-      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_config,sync_claude_json -e "skip_confirm=true"'
+      - '{{ .ANSIBLE_CMD }} {{ .PLAYBOOK }} --tags sync_config,sync_claude_json,sync_codex_config -e "skip_confirm=true"'
 
   # ===== 辅助任务 =====
 
@@ -86,5 +96,16 @@ tasks:
           cat ~/.claude.json | jq .
         else
           echo "~/.claude.json not found"
+        fi
+    silent: true
+
+  view-codex-config:
+    desc: 查看当前 ~/.codex/config.toml
+    cmds:
+      - |
+        if [ -f ~/.codex/config.toml ]; then
+          cat ~/.codex/config.toml
+        else
+          echo "~/.codex/config.toml not found"
         fi
     silent: true

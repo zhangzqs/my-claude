@@ -1,0 +1,147 @@
+---
+# playbooks/tasks/sync_codex_config_tasks.yml
+# 同步 Codex CLI 配置到 ~/.codex
+
+- name: 显示 Codex 阶段信息
+  debug:
+    msg: |
+      ========================================
+      阶段 3.5：同步 Codex CLI 配置到 ~/.codex
+      ========================================
+
+- name: 检测是否为交互式终端（Codex）
+  shell: |
+    if [ -t 0 ] && [ -t 1 ]; then
+      echo true
+    else
+      echo false
+    fi
+  register: codex_interactive_terminal
+  changed_when: false
+
+- name: 创建 ~/.codex 目录
+  file:
+    path: ~/.codex
+    state: directory
+    mode: "0755"
+
+- name: 创建备份目录 tmps/backup
+  file:
+    path: "{{ playbook_dir }}/../tmps/backup"
+    state: directory
+    mode: "0755"
+
+# ===== config.toml 同步 =====
+
+- name: 渲染 Codex config.toml
+  template:
+    src: "{{ playbook_dir }}/../codex-assets/config.toml.j2"
+    dest: /tmp/codex_config_new.toml
+    mode: "0644"
+
+- name: 检查现有 config.toml 是否存在
+  stat:
+    path: ~/.codex/config.toml
+  register: existing_codex_config
+
+- name: 检查 Codex 配置是否有差异
+  shell: |
+    if [ -f ~/.codex/config.toml ]; then
+      diff -u ~/.codex/config.toml /tmp/codex_config_new.toml || true
+    else
+      echo "NEW_FILE"
+    fi
+  register: codex_config_diff
+  changed_when: false
+
+- name: 显示 Codex 配置差异
+  debug:
+    msg: |
+      ========================================
+      config.toml 差异预览
+      ========================================
+      {% if codex_config_diff.stdout == "NEW_FILE" %}
+      这是首次创建 config.toml 文件
+      {% elif codex_config_diff.stdout == "" %}
+      配置无变化，无需更新
+      {% else %}
+      {{ codex_config_diff.stdout }}
+      {% endif %}
+
+- name: 生成时间戳（Codex）
+  shell: date +"%Y%m%d_%H%M%S"
+  register: codex_timestamp
+  when: existing_codex_config.stat.exists and codex_config_diff.stdout != "" and codex_config_diff.stdout != "NEW_FILE"
+  changed_when: false
+
+- name: 备份现有 config.toml
+  copy:
+    src: ~/.codex/config.toml
+    dest: "{{ playbook_dir }}/../tmps/backup/codex_config.toml.{{ codex_timestamp.stdout }}"
+    mode: "0644"
+  when: existing_codex_config.stat.exists and codex_config_diff.stdout != "" and codex_config_diff.stdout != "NEW_FILE"
+
+- name: 显示 Codex 备份信息
+  debug:
+    msg: |
+      备份已创建：tmps/backup/codex_config.toml.{{ codex_timestamp.stdout }}
+  when: existing_codex_config.stat.exists and codex_config_diff.stdout != "" and codex_config_diff.stdout != "NEW_FILE"
+
+- name: 非交互环境下跳过 Codex 配置更新确认
+  debug:
+    msg: "检测到非交互终端，跳过 Codex config.toml 更新确认提示"
+  when:
+    - codex_config_diff.stdout != ""
+    - (codex_config.confirm_codex_config_update | default(true) | bool)
+    - not (skip_confirm | default(false) | bool)
+    - codex_interactive_terminal.stdout != "true"
+
+- name: 询问是否继续更新 Codex 配置
+  pause:
+    prompt: |
+      ========================================
+      检测到 Codex 配置变更
+      ========================================
+      {% if codex_config_diff.stdout == "NEW_FILE" %}
+      将创建新的 config.toml 文件
+      {% else %}
+      上述差异将被应用
+      {% endif %}
+
+      备份文件：{% if codex_timestamp.stdout is defined %}tmps/backup/codex_config.toml.{{ codex_timestamp.stdout }}{% else %}（无需备份）{% endif %}
+
+      是否继续？(yes/no)
+  when: codex_config_diff.stdout != "" and (codex_config.confirm_codex_config_update | default(true) | bool) and not (skip_confirm | default(false) | bool) and codex_interactive_terminal.stdout == "true"
+  register: codex_user_confirmation
+
+- name: 确认用户选择（Codex）
+  fail:
+    msg: "用户取消了 Codex 配置更新"
+  when: codex_config_diff.stdout != "" and (codex_config.confirm_codex_config_update | default(true) | bool) and not (skip_confirm | default(false) | bool) and codex_interactive_terminal.stdout == "true" and codex_user_confirmation.user_input != "yes" and codex_user_confirmation.user_input != "y"
+
+- name: 更新 config.toml
+  copy:
+    src: /tmp/codex_config_new.toml
+    dest: ~/.codex/config.toml
+    mode: "0644"
+  when: codex_config_diff.stdout != ""
+
+# ===== .env 同步（API Key 等环境变量） =====
+
+- name: 渲染 Codex .env 文件
+  template:
+    src: "{{ playbook_dir }}/../codex-assets/env.j2"
+    dest: ~/.codex/.env
+    mode: "0600"
+
+# ===== AGENTS.md 同步 =====
+
+- name: 拷贝 AGENTS.md 文件
+  copy:
+    src: "{{ playbook_dir }}/../codex-assets/AGENTS.md"
+    dest: ~/.codex/AGENTS.md
+    mode: "0644"
+
+- name: 显示 Codex 配置同步完成信息
+  debug:
+    msg: "Codex CLI 配置同步完成"

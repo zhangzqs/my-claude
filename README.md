@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## 🤖 Claude Code 配置管理仓库
+## Claude Code + Codex CLI 配置管理仓库
 
-基于 Ansible 的声明式配置管理,实现 Claude 个性化配置的自动化部署与同步
+基于 Ansible 的声明式配置管理,实现 Claude Code 和 Codex CLI 个性化配置的自动化部署与同步
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Ansible](https://img.shields.io/badge/Ansible-2.9%2B-blue)](https://www.ansible.com/)
@@ -14,19 +14,20 @@
 
 ---
 
-## ✨ 特性
+## 特性
 
-- **🔧 声明式配置管理**：使用 YAML 声明期望状态,由 Ansible 自动执行
-- **🎨 个性化输出风格**：支持多种人格化输出风格(猫娘工程师、大小姐工程师等)
-- **⌨️ 自定义命令扩展**：通过 Markdown 定义 Claude 自定义命令(如 `/git-commit`、`/init-project`)
-- **🤖 智能体编排**：支持子 Agent 定义,实现复杂任务分解与自动化
-- **🔌 插件管理**：一键安装与配置 Claude 官方插件(Playwright、Serena、Context7 等)
-- **🔐 安全配置**：敏感信息与公开配置分离,支持 Ansible Vault 加密
-- **🚀 CI/CD 集成**：提供 GitHub Actions 自动化测试流程
+- **声明式配置管理**：使用 YAML 声明期望状态,由 Ansible 自动执行
+- **多工具统一管理**：同时管理 Claude Code (`~/.claude/`) 和 Codex CLI (`~/.codex/`) 的配置
+- **个性化输出风格**：支持多种人格化输出风格(猫娘工程师、大小姐工程师等)
+- **自定义命令扩展**：通过 Markdown 定义 Claude 自定义命令(如 `/git-commit`、`/init-project`)
+- **智能体编排**：支持子 Agent 定义,实现复杂任务分解与自动化
+- **插件管理**：一键安装与配置 Claude 官方插件(Playwright、Serena、Context7 等)
+- **安全配置**：敏感信息与公开配置分离,支持 Ansible Vault 加密
+- **CI/CD 集成**：提供 GitHub Actions 自动化测试流程
 
 ---
 
-## 📦 快速开始
+## 快速开始
 
 ### 前置条件
 
@@ -64,10 +65,12 @@ uv run ansible-playbook playbooks/setup.yml
 - Claude 配置已同步到 `~/.claude/settings.json`
 - 自定义命令已安装到 `~/.claude/skills/`
 - 输出风格已同步到 `~/.claude/output-styles/`
+- Codex CLI 配置已同步到 `~/.codex/config.toml`
+- Codex 指令文件已同步到 `~/.codex/AGENTS.md`
 
 ---
 
-## 👥 多人使用流程
+## 多人使用流程
 
 如果你是从上游仓库 Fork 出来的用户，可以按照以下流程配置和使用。
 
@@ -142,7 +145,7 @@ git push
 
 ---
 
-## 📚 文档
+## 文档
 
 - **[完整文档](CLAUDE.md)**：项目架构、开发指南、API 参考
 - **[快速开始](CLAUDE.md#快速开始)**：一键部署流程
@@ -153,7 +156,7 @@ git push
 
 ---
 
-## 🎨 输出风格
+## 输出风格
 
 支持以下人格化输出风格(在 `settings.yml` 中配置 `outputStyle`):
 
@@ -167,7 +170,7 @@ git push
 
 ---
 
-## ⌨️ 自定义命令
+## 自定义命令
 
 ### `/git-commit` - 智能提交命令
 
@@ -190,7 +193,7 @@ git push
 
 ---
 
-## 🔌 插件管理
+## 插件管理
 
 ### 支持的官方插件
 
@@ -225,7 +228,46 @@ uv run ansible-playbook playbooks/setup.yml --tags sync_config  # 同步配置
 
 ---
 
-## 🛠️ 开发指南
+## Codex CLI 配置
+
+本项目同时管理 OpenAI Codex CLI 的配置,与 Claude Code 并行部署、互不干扰,共享 API keys。
+
+### 配置文件对照
+
+| Codex 概念 | 对应 Claude 概念 | 部署位置 |
+|-----------|-----------------|---------|
+| `config.toml` | `settings.json` | `~/.codex/config.toml` |
+| `AGENTS.md` | `CLAUDE.md` | `~/.codex/AGENTS.md` |
+
+### 配置变量
+
+编辑 `inventory/<config>/group_vars/all/codex_config.yml`:
+
+```yaml
+codex_config:
+  model_provider: "ppio"
+  model: "pa/gpt-5.4"
+  model_reasoning_effort: "xhigh"
+  sandbox_mode: "read-only"
+
+codex_model_providers:
+  ppio:
+    base_url: "https://api.ppio.com/openai/v1"
+    wire_api: "responses"
+    api_key: "{{ secrets.api_keys.jdo_key }}"
+```
+
+### 常用命令
+
+```bash
+task sync-codex         # 同步 Codex 配置
+task check-codex        # 预览 Codex 配置变更
+task view-codex-config  # 查看当前 Codex 配置
+```
+
+---
+
+## 开发指南
 
 ### 添加自定义命令
 
@@ -254,7 +296,7 @@ allowed-tools: Read(**), Write(**)
 
 ---
 
-## 🤝 贡献指南
+## 贡献指南
 
 欢迎提交 Issue 和 Pull Request!
 
@@ -274,21 +316,22 @@ allowed-tools: Read(**), Write(**)
 
 ---
 
-## 📄 许可证
+## 许可证
 
 本项目采用 [MIT License](LICENSE) 开源。
 
 ---
 
-## 🙏 致谢
+## 致谢
 
 - [Anthropic Claude](https://www.anthropic.com/) - 强大的 AI 助手
+- [OpenAI Codex](https://openai.com/) - 智能编程助手
 - [Ansible](https://www.ansible.com/) - 优雅的自动化工具
-- 所有贡献者 ❤️
+- 所有贡献者
 
 ---
 
-## 📧 联系方式
+## 联系方式
 
 - **Issues**:[GitHub Issues](https://github.com/yourusername/my-claude-ansible/issues)
 - **Discussions**:[GitHub Discussions](https://github.com/yourusername/my-claude-ansible/discussions)
@@ -297,6 +340,6 @@ allowed-tools: Read(**), Write(**)
 
 <div align="center">
 
-**⭐ 如果这个项目对你有帮助,请给个 Star!**
+**如果这个项目对你有帮助,请给个 Star!**
 
 </div>

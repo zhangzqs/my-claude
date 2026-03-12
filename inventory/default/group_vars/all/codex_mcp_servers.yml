@@ -1,0 +1,31 @@
+# ===== Codex CLI MCP 服务器配置 =====
+# 渲染到 ~/.codex/config.toml 的 [mcp_servers.*] 段
+# 格式说明：
+#   stdio 类型：command + args（+ env 可选）
+#   http  类型：url（+ bearer_token_env_var 可选）
+#
+# 与 Claude Code 插件的对应关系：
+#   context7 / playwright / serena / figma → 同源 MCP server
+#   mcp-server-fetch / deepwiki → 通用工具（与 custom_mcp_servers 共享）
+#   code-review / feature-dev / superpowers 等 → 纯 skill，Codex 无对应
+
+codex_mcp_servers:
+  # --- 与 Claude Code 插件同源的 MCP 服务器 ---
+  context7:
+    command: "npx"
+    args: ["-y", "@upstash/context7-mcp"]
+  playwright:
+    command: "npx"
+    args: ["@playwright/mcp@latest"]
+  serena:
+    command: "uvx"
+    args: ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server"]
+  figma:
+    url: "https://mcp.figma.com/mcp"
+
+  # --- 通用工具 MCP 服务器 ---
+  fetch:
+    command: "uvx"
+    args: ["mcp-server-fetch"]
+  deepwiki:
+    url: "https://mcp.deepwiki.com/mcp"

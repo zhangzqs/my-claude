@@ -7,7 +7,8 @@
 # 2. 自动安装 enabled_plugins 列表中的插件
 # 3. 同步 claude.json 配置到 ~/.claude.json（MCP 服务器）
 # 4. 同步配置到 ~/.claude/settings.json
-# 5. 验证部署结果
+# 5. 同步 Codex CLI 配置到 ~/.codex/config.toml
+# 6. 验证部署结果
 #
 # 使用方法：
 #   # 单机部署（默认）
@@ -24,12 +25,14 @@
 #   uv run ansible-playbook playbooks/setup.yml --skip-tags install_plugins
 #   uv run ansible-playbook playbooks/setup.yml --skip-tags sync_claude_json
 #   uv run ansible-playbook playbooks/setup.yml --skip-tags sync_config
+#   uv run ansible-playbook playbooks/setup.yml --skip-tags sync_codex_config
 #   uv run ansible-playbook playbooks/setup.yml --skip-tags verify
 #
 # 仅执行特定阶段：
 #   uv run ansible-playbook playbooks/setup.yml --tags install_plugins
 #   uv run ansible-playbook playbooks/setup.yml --tags sync_claude_json
 #   uv run ansible-playbook playbooks/setup.yml --tags sync_config
+#   uv run ansible-playbook playbooks/setup.yml --tags sync_codex_config
 #
 # 说明：
 #   install_cli tag 为兼容保留；当前仅检查 Claude CLI，并在需要时安装 ccline
@@ -39,10 +42,11 @@
   gather_facts: false
 
   vars_files:
-    - "{{ playbook_dir }}/../inventory/default/group_vars/all/secrets.yml"
-    - "{{ playbook_dir }}/../inventory/default/group_vars/all/models.yml"
-    - "{{ playbook_dir }}/../inventory/default/group_vars/all/settings.yml"
-    - "{{ playbook_dir }}/../inventory/default/group_vars/all/mcp_servers.yml"
+    - "{{ inventory_dir }}/group_vars/all/secrets.yml"
+    - "{{ inventory_dir }}/group_vars/all/models.yml"
+    - "{{ inventory_dir }}/group_vars/all/settings.yml"
+    - "{{ inventory_dir }}/group_vars/all/mcp_servers.yml"
+    - "{{ inventory_dir }}/group_vars/all/codex_config.yml"
 
   vars:
     # 从 settings.yml 读取配置
@@ -87,6 +91,15 @@
       tags:
         - sync_config
 
+    - name: ===== 阶段 3.5：同步 Codex CLI 配置 =====
+      include_tasks:
+        file: tasks/sync_codex_config_tasks.yml
+        apply:
+          tags:
+            - sync_codex_config
+      tags:
+        - sync_codex_config
+
     - name: ===== 阶段 4：验证部署 =====
       include_tasks:
         file: tasks/verify_deployment.yml
@@ -100,10 +113,10 @@
       debug:
         msg: |
           ========================================
-          ✓ Claude Code 部署完成
+          Claude Code + Codex CLI 部署完成
           ========================================
 
-          部署摘要：
+          Claude Code 部署摘要：
           - 目标主机：{{ inventory_hostname }}
           - Claude CLI：{{ claude_version.stdout | default('已通过前置检查') }}
           - ccline：{{ ccline_version.stdout | default(ccline_install_version.stdout | default('可用')) }}
@@ -112,7 +125,14 @@
           - MCP 服务器：{% if claude_json.mcpServers is defined and claude_json.mcpServers | length > 0 %}{{ claude_json.mcpServers | length }} 个（deep merge 模式）{% else %}(未配置){% endif %}
           - 输出风格：{{ settings.outputStyle }}
 
-          已启用的插件：
+          Codex CLI 部署摘要：
+          - 配置文件：~/.codex/config.toml
+          - 指令文件：~/.codex/AGENTS.md
+          - 模型预设：{{ use_codex_model }}
+          - 模型提供商：{{ codex_model_configs[use_codex_model].model_provider }}
+          - 模型：{{ codex_model_configs[use_codex_model].model }}
+
+          已启用的 Claude 插件：
           {% for plugin in plugins_to_install %}
           - {{ plugin }}
           {% endfor %}
@@ -120,9 +140,11 @@
           下一步：
           1. 重启 Claude Code 会话以加载新配置
           2. 验证插件工具是否可用
+          3. 验证 Codex CLI 配置是否生效
 
           验证命令：
           - claude plugin list          # 查看已安装插件
-          - cat ~/.claude/settings.json # 检查配置文件
+          - cat ~/.claude/settings.json # 检查 Claude 配置
+          - cat ~/.codex/config.toml    # 检查 Codex 配置
       tags:
         - always

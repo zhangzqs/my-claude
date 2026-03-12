@@ -1,0 +1,84 @@
+# Codex CLI 配置文件
+# 由 Ansible 模板渲染生成，请勿手动修改
+# 模板来源：codex-assets/config.toml.j2
+# 当前模型预设：{{ use_codex_model }}
+
+{% set active = codex_model_configs[use_codex_model] %}
+model_provider = "{{ active.model_provider }}"
+model = "{{ active.model }}"
+{% if active.model_reasoning_effort is defined %}
+model_reasoning_effort = "{{ active.model_reasoning_effort }}"
+{% endif %}
+{% if active.disable_response_storage is defined %}
+disable_response_storage = {{ active.disable_response_storage | lower }}
+{% endif %}
+{% if active.preferred_auth_method is defined %}
+preferred_auth_method = "{{ active.preferred_auth_method }}"
+{% endif %}
+{% if codex_config.sandbox_mode is defined %}
+sandbox_mode = "{{ codex_config.sandbox_mode }}"
+{% endif %}
+{% if codex_config.approval_policy is defined %}
+approval_policy = "{{ codex_config.approval_policy }}"
+{% endif %}
+{% if codex_config.instructions is defined %}
+instructions = "{{ codex_config.instructions }}"
+{% endif %}
+
+{% if codex_config.history is defined %}
+[history]
+{% for key, value in codex_config.history.items() %}
+{% if value is sameas true or value is sameas false %}
+{{ key }} = {{ value | lower }}
+{% elif value is number %}
+{{ key }} = {{ value }}
+{% else %}
+{{ key }} = "{{ value }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% for provider_name, provider_config in active.providers.items() %}
+[model_providers.{{ provider_name }}]
+{% for key, value in provider_config.items() %}
+{% if value is sameas true or value is sameas false %}
+{{ key }} = {{ value | lower }}
+{% elif value is number %}
+{{ key }} = {{ value }}
+{% elif value is sequence and value is not string %}
+{{ key }} = [{{ value | map('regex_replace', '^(.*)$', '"\\1"') | join(', ') }}]
+{% else %}
+{{ key }} = "{{ value }}"
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+{% if codex_mcp_servers is defined and codex_mcp_servers | length > 0 %}
+{% for server_name, server_config in codex_mcp_servers.items() %}
+[mcp_servers.{{ server_name }}]
+{% for key, value in server_config.items() %}
+{% if value is sameas true or value is sameas false %}
+{{ key }} = {{ value | lower }}
+{% elif value is number %}
+{{ key }} = {{ value }}
+{% elif value is sequence and value is not string %}
+{{ key }} = [{{ value | map('regex_replace', '^(.*)$', '"\\1"') | join(', ') }}]
+{% else %}
+{{ key }} = "{{ value }}"
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+{% endif %}
+{% if codex_features is defined and codex_features | length > 0 %}
+[features]
+{% for key, value in codex_features.items() %}
+{% if value is sameas true or value is sameas false %}
+{{ key }} = {{ value | lower }}
+{% elif value is number %}
+{{ key }} = {{ value }}
+{% else %}
+{{ key }} = "{{ value }}"
+{% endif %}
+{% endfor %}
+{% endif %}

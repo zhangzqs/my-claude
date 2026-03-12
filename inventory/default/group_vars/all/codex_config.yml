@@ -1,0 +1,77 @@
+# Codex CLI 配置
+# 渲染到 ~/.codex/config.toml
+
+codex_config:
+  # 是否在更新 config.toml 前要求人工确认（true/false）
+  confirm_codex_config_update: true
+
+  # ===== 沙箱与权限 =====
+  # sandbox_mode: read-only / workspace-write / danger-full-access
+  sandbox_mode: "read-only"
+  # approval_policy: suggest / auto-edit / full-auto
+  # approval_policy: "suggest"
+
+  # ===== 用户指令（可选，内联短指令） =====
+  # instructions: "总是使用中文回答"
+
+  # ===== 历史记录 =====
+  history:
+    persistence: "save-all"
+
+# ===== 模型预设（多选一） =====
+# 与 models.yml 设计一致：定义多个预设，通过 use_codex_model 切换
+codex_model_configs:
+  ppio_gpt54:
+    model_provider: "ppio"
+    model: "pa/gpt-5.4"
+    model_reasoning_effort: "xhigh"
+    disable_response_storage: true
+    preferred_auth_method: "apikey"
+    providers:
+      ppio:
+        name: "PPIO (GPT-5.4)"
+        base_url: "https://api.ppio.com/openai/v1"
+        wire_api: "responses"
+        env_key: "PPIO_API_KEY"
+    env:
+      PPIO_API_KEY: "{{ secrets.api_keys.jdo_key }}"
+  ppio_gpt54_pro: 
+    model_provider: "ppio"
+    model: "pa/gpt-5.4-pro"
+    model_reasoning_effort: "xhigh"
+    disable_response_storage: true
+    preferred_auth_method: "apikey"
+    providers:
+      ppio:
+        name: "PPIO (GPT-5.4 Pro)"
+        base_url: "https://api.ppio.com/openai/v1"
+        wire_api: "responses"
+        env_key: "PPIO_API_KEY"
+    env:
+      PPIO_API_KEY: "{{ secrets.api_keys.jdo_key }}"
+  ppio_gemini:
+    model_provider: "ppio"
+    model: "pa/gemini-3.1-pro-preview"
+    disable_response_storage: true
+    preferred_auth_method: "apikey"
+    providers:
+      ppio:
+        name: "PPIO (Gemini)"
+        base_url: "https://api.ppinfra.com"
+        wire_api: "responses"
+        env_key: "PPIO_API_KEY"
+    env:
+      PPIO_API_KEY: "{{ secrets.api_keys.jdo_key }}"
+
+# 当前使用的模型预设（取消注释切换）
+use_codex_model: "ppio_gpt54"
+# use_codex_model: "ppio_gpt54_pro"
+# use_codex_model: "ppio_gemini"
+
+# ===== MCP 服务器配置 =====
+# 已拆分到 codex_mcp_servers.yml
+
+# ===== Feature Flags（可选） =====
+codex_features: {}
+  # 示例：
+  # shell_tool: false
